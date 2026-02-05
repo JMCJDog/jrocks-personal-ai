@@ -67,6 +67,19 @@ class AgentResponse:
 
 
 @dataclass
+class InterAgentMessage:
+    """A message between agents for coordination."""
+    
+    sender: str
+    recipient: str
+    content: str
+    message_type: str = "request"  # request, response, notification
+    context: dict = field(default_factory=dict)
+    timestamp: datetime = field(default_factory=datetime.now)
+    correlation_id: Optional[str] = None
+
+
+@dataclass
 class AgentMessage:
     """A message in the agent conversation."""
     
@@ -74,6 +87,8 @@ class AgentMessage:
     content: str
     agent_name: Optional[str] = None
     tool_call_id: Optional[str] = None
+    sender: Optional[str] = None  # For inter-agent messages
+    recipient: Optional[str] = None  # For inter-agent messages
     metadata: dict = field(default_factory=dict)
 
 
@@ -227,5 +242,35 @@ class BaseAgent(ABC):
         except Exception as e:
             return f"Error calling LLM: {str(e)}"
     
+    def get_capabilities_schema(self) -> dict:
+        """Get a JSON schema describing the agent's capabilities.
+        
+        Returns:
+            dict: Schema with name, description, and capabilities.
+        """
+        return {
+            "name": self.name,
+            "description": self.config.description,
+            "capabilities": [c.value for c in self.capabilities],
+            "model": self.config.model_name,
+        }
+    
+    async def receive_message(self, message: InterAgentMessage) -> AgentResponse:
+        """Receive a message from another agent.
+        
+        Args:
+            message: The inter-agent message.
+        
+        Returns:
+            AgentResponse: Response to the sender.
+        """
+        # Process the message content
+        context = message.context.copy()
+        context["from_agent"] = message.sender
+        context["message_type"] = message.message_type
+        
+        return self.process(message.content, context)
+    
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(name='{self.name}')"
+

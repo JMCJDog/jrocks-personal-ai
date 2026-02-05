@@ -8,7 +8,7 @@ representing JROCK.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import chat, ingest, agents
+from .api import chat, ingest, agents, mcp
 
 app = FastAPI(
     title="JRock's Personal AI",
@@ -34,6 +34,7 @@ app.add_middleware(
 app.include_router(chat.router, prefix="/api/chat")
 app.include_router(ingest.router, prefix="/api/ingest")
 app.include_router(agents.router)
+app.include_router(mcp.router)
 
 
 @app.get("/")

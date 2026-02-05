@@ -39,6 +39,13 @@ app.include_router(security.router)
 app.include_router(sync.router)
 
 
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup."""
+    from .core.logging_config import setup_logging
+    setup_logging()
+
+
 @app.get("/")
 def root() -> dict[str, str]:
     """Root endpoint returning welcome message.

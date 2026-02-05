@@ -1,11 +1,33 @@
+# Credentials & Secrets
+.env
+.env.local
+credentials.json
+token.pickle
+client_secret.json
+*.pem
+*.key
+
+# Data & Storage
+data/
+output/
+db/
+*.db
+*.sqlite3
+chroma_db/
+
+# Logs
+logs/
+*.log
+
+# Python
 .venv/
 __pycache__/
 *.pyc
 dist/
 build/
 *.egg-info/
-.env
-.env.local
 Resources/requirements.lock
+
+# IDEs
 /.vscode/
 /.idea/

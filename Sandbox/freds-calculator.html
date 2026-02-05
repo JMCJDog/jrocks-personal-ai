@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fred's Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .calculator {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 
+                0 25px 45px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+
+        .calculator h1 {
+            text-align: center;
+            color: #e94560;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+        }
+
+        .display {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: right;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .display .previous {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1rem;
+            min-height: 24px;
+        }
+
+        .display .current {
+            color: #fff;
+            font-size: 2.5rem;
+            font-weight: 300;
+            word-wrap: break-word;
+            min-height: 50px;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        button {
+            padding: 20px;
+            font-size: 1.3rem;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-number {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+
+        .btn-number:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .btn-operator {
+            background: linear-gradient(135deg, #e94560, #c73659);
+            color: #fff;
+        }
+
+        .btn-operator:hover {
+            background: linear-gradient(135deg, #ff5a75, #e94560);
+            box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4);
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #533483, #7952b3);
+            color: #fff;
+        }
+
+        .btn-clear:hover {
+            background: linear-gradient(135deg, #6b44a8, #8b67c9);
+            box-shadow: 0 5px 20px rgba(121, 82, 179, 0.4);
+        }
+
+        .btn-equals {
+            background: linear-gradient(135deg, #00c9a7, #00b894);
+            color: #fff;
+            grid-column: span 2;
+        }
+
+        .btn-equals:hover {
+            background: linear-gradient(135deg, #00e6bf, #00d9a9);
+            box-shadow: 0 5px 20px rgba(0, 201, 167, 0.4);
+        }
+
+        .btn-zero {
+            grid-column: span 2;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .calculating {
+            animation: pulse 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <h1>🧮 Fred's Calculator</h1>
+        <div class="display">
+            <div class="previous" id="previous"></div>
+            <div class="current" id="current">0</div>
+        </div>
+        <div class="buttons">
+            <button class="btn-clear" onclick="clearAll()">AC</button>
+            <button class="btn-clear" onclick="clearEntry()">CE</button>
+            <button class="btn-operator" onclick="appendOperator('%')">%</button>
+            <button class="btn-operator" onclick="appendOperator('/')">÷</button>
+            
+            <button class="btn-number" onclick="appendNumber('7')">7</button>
+            <button class="btn-number" onclick="appendNumber('8')">8</button>
+            <button class="btn-number" onclick="appendNumber('9')">9</button>
+            <button class="btn-operator" onclick="appendOperator('*')">×</button>
+            
+            <button class="btn-number" onclick="appendNumber('4')">4</button>
+            <button class="btn-number" onclick="appendNumber('5')">5</button>
+            <button class="btn-number" onclick="appendNumber('6')">6</button>
+            <button class="btn-operator" onclick="appendOperator('-')">−</button>
+            
+            <button class="btn-number" onclick="appendNumber('1')">1</button>
+            <button class="btn-number" onclick="appendNumber('2')">2</button>
+            <button class="btn-number" onclick="appendNumber('3')">3</button>
+            <button class="btn-operator" onclick="appendOperator('+')">+</button>
+            
+            <button class="btn-number btn-zero" onclick="appendNumber('0')">0</button>
+            <button class="btn-number" onclick="appendDecimal()">.</button>
+            <button class="btn-operator" onclick="toggleSign()">±</button>
+            
+            <button class="btn-equals" onclick="calculate()">=</button>
+        </div>
+    </div>
+
+    <script>
+        let currentValue = '0';
+        let previousValue = '';
+        let operator = null;
+        let shouldResetDisplay = false;
+
+        const currentDisplay = document.getElementById('current');
+        const previousDisplay = document.getElementById('previous');
+
+        function updateDisplay() {
+            currentDisplay.textContent = currentValue;
+            if (previousValue && operator) {
+                const opSymbol = { '+': '+', '-': '−', '*': '×', '/': '÷', '%': '%' }[operator];
+                previousDisplay.textContent = `${previousValue} ${opSymbol}`;
+            } else {
+                previousDisplay.textContent = '';
+            }
+        }
+
+        function appendNumber(num) {
+            if (shouldResetDisplay) {
+                currentValue = num;
+                shouldResetDisplay = false;
+            } else if (currentValue === '0') {
+                currentValue = num;
+            } else if (currentValue.length < 12) {
+                currentValue += num;
+            }
+            updateDisplay();
+        }
+
+        function appendDecimal() {
+            if (shouldResetDisplay) {
+                currentValue = '0.';
+                shouldResetDisplay = false;
+            } else if (!currentValue.includes('.')) {
+                currentValue += '.';
+            }
+            updateDisplay();
+        }
+
+        function appendOperator(op) {
+            if (operator && !shouldResetDisplay) {
+                calculate();
+            }
+            previousValue = currentValue;
+            operator = op;
+            shouldResetDisplay = true;
+            updateDisplay();
+        }
+
+        function toggleSign() {
+            if (currentValue !== '0') {
+                currentValue = currentValue.startsWith('-') 
+                    ? currentValue.slice(1) 
+                    : '-' + currentValue;
+                updateDisplay();
+            }
+        }
+
+        function clearAll() {
+            currentValue = '0';
+            previousValue = '';
+            operator = null;
+            shouldResetDisplay = false;
+            updateDisplay();
+        }
+
+        function clearEntry() {
+            currentValue = '0';
+            shouldResetDisplay = false;
+            updateDisplay();
+        }
+
+        function calculate() {
+            if (!operator || !previousValue) return;
+            
+            currentDisplay.classList.add('calculating');
+            setTimeout(() => currentDisplay.classList.remove('calculating'), 150);
+
+            const prev = parseFloat(previousValue);
+            const curr = parseFloat(currentValue);
+            let result;
+
+            switch (operator) {
+                case '+': result = prev + curr; break;
+                case '-': result = prev - curr; break;
+                case '*': result = prev * curr; break;
+                case '/': result = curr !== 0 ? prev / curr : 'Error'; break;
+                case '%': result = prev % curr; break;
+            }
+
+            if (typeof result === 'number') {
+                // Round to avoid floating point issues
+                result = Math.round(result * 1000000000) / 1000000000;
+                currentValue = result.toString();
+                if (currentValue.length > 12) {
+                    currentValue = result.toExponential(6);
+                }
+            } else {
+                currentValue = result;
+            }
+
+            previousValue = '';
+            operator = null;
+            shouldResetDisplay = true;
+            updateDisplay();
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') appendNumber(e.key);
+            else if (e.key === '.') appendDecimal();
+            else if (e.key === '+') appendOperator('+');
+            else if (e.key === '-') appendOperator('-');
+            else if (e.key === '*') appendOperator('*');
+            else if (e.key === '/') { e.preventDefault(); appendOperator('/'); }
+            else if (e.key === '%') appendOperator('%');
+            else if (e.key === 'Enter' || e.key === '=') calculate();
+            else if (e.key === 'Escape') clearAll();
+            else if (e.key === 'Backspace') clearEntry();
+        });
+
+        updateDisplay();
+    </script>
+</body>
+</html>

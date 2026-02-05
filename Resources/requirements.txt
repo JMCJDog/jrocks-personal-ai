@@ -1,0 +1,41 @@
+ollama
+langchain
+langchain-community
+langchain-ollama
+
+chromadb
+sentence-transformers
+pypdf
+python-dotenv
+
+supabase
+
+fastapi
+uvicorn
+
+pandas
+numpy
+gunicorn
+# --- Local AI Core (The Engine) ---
+ollama                  # Python wrapper to control your local models
+langchain               # The framework to build AI apps
+langchain-community     # Connectors for local tools
+langchain-ollama        # Specific link between LangChain and Ollama
+langgraph               # Stateful agent orchestration and multi-step workflows
+
+# --- The "Vibe Coding" Utilities ---
+chromadb                # Local vector database (for agent memory)
+sentence-transformers   # Runs local embeddings (needed for RAG)
+pypdf                   # Lets agents read your PDF docs
+python-dotenv           # Manages your API keys securely
+
+# --- Production Connectors (The Stack) ---
+supabase                # Connects your Python scripts to your backend
+pinecone                # Vector database for semantic search and RAG
+# Frontend: See Resources/package.json for npm deps (Vercel AI SDK, Next.js)
+fastapi                 # Standard for building modern Python APIs
+uvicorn                 # Server to run FastAPI
+
+# --- Data Handling ---
+pandas                  # Essential for data manipulation
+numpy                   # Math operations (needed for AI)

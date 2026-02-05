@@ -1,0 +1,10 @@
+{
+  "name": "vibe-coding-frontend",
+  "description": "Frontend dependencies for Vibe Coding tech stack",
+  "dependencies": {
+    "ai": "^3.0.0",
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}

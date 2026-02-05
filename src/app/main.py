@@ -1,20 +1,38 @@
-"""Vibe Coding FastAPI application.
+"""JRock's Personal AI - FastAPI application.
 
-This module defines the main FastAPI application with health check
-and status endpoints.
+A comprehensive AI ecosystem that ingests multimedia and data
+into a Small Language Model to build a digital consciousness
+representing JROCK.
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from .api import chat, ingest
 
 app = FastAPI(
-    title="Vibe Coding API",
-    description="A starter local/edge AI project scaffolded for development and deployment.",
-    version="0.0.1",
+    title="JRock's Personal AI",
+    description="A digital consciousness ecosystem with chatbot, likeness generation, "
+                "and content creation powered by local SLMs.",
+    version="0.1.0",
     contact={
         "name": "JMCJDOG",
         "email": "jared.cohen55@gmail.com",
     },
 )
+
+# CORS middleware for frontend integration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include API routers
+app.include_router(chat.router, prefix="/api/chat")
+app.include_router(ingest.router, prefix="/api/ingest")
 
 
 @app.get("/")
@@ -24,7 +42,12 @@ def root() -> dict[str, str]:
     Returns:
         dict: Status and welcome message.
     """
-    return {"status": "ok", "message": "Welcome to Vibe Coding"}
+    return {
+        "status": "ok",
+        "message": "Welcome to JRock's Personal AI",
+        "version": "0.1.0",
+        "docs": "/docs",
+    }
 
 
 @app.get("/health")

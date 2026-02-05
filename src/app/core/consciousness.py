@@ -34,6 +34,7 @@ class Memory:
     timestamp: datetime = field(default_factory=datetime.now)
     category: str = "general"
     associations: list[str] = field(default_factory=list)
+    source: str = "internal"  # internal, external_chat, document, reflection
 
 
 @dataclass 
@@ -52,11 +53,6 @@ class ConsciousnessState:
     
     Tracks emotional state, memories, current context, and provides
     methods for state transitions and memory management.
-    
-    Example:
-        >>> consciousness = ConsciousnessState()
-        >>> consciousness.process_input("Tell me about AI")
-        >>> print(consciousness.emotional_state)
     """
     
     def __init__(self) -> None:
@@ -112,7 +108,8 @@ class ConsciousnessState:
         self,
         content: str,
         importance: float = 0.5,
-        category: str = "general"
+        category: str = "general",
+        source: str = "internal"
     ) -> Memory:
         """Add a new memory.
         
@@ -120,6 +117,7 @@ class ConsciousnessState:
             content: The memory content.
             importance: Importance score (0-1).
             category: Memory category.
+            source: source of the memory.
         
         Returns:
             Memory: The created memory.
@@ -127,7 +125,8 @@ class ConsciousnessState:
         memory = Memory(
             content=content,
             importance=importance,
-            category=category
+            category=category,
+            source=source
         )
         
         self.short_term_memories.append(memory)
@@ -141,6 +140,51 @@ class ConsciousnessState:
             self.short_term_memories = self.short_term_memories[-20:]
         
         return memory
+
+    def ingest_external_memory(
+        self,
+        content: str,
+        source: str,
+        importance: float = 0.5,
+        metadata: Optional[dict] = None
+    ) -> Memory:
+        """Ingest memory from an external source (chat history, docs).
+        
+        Args:
+            content: The content to ingest.
+            source: Origin (e.g., 'openai_chat', 'google_doc').
+            importance: Estimated importance.
+            metadata: Additional metadata.
+            
+        Returns:
+            Memory: The ingested memory object.
+        """
+        # For now, simple pass-through to add_memory
+        # Future: Run through SLM to summarize or extract key facts first
+        
+        category = "external_knowledge"
+        if "chat" in source:
+            category = "conversation_history"
+        elif "doc" in source:
+            category = "document_knowledge"
+            
+        return self.add_memory(
+            content=content,
+            importance=importance,
+            category=category,
+            source=source
+        )
+
+    def reflect_on_conversations(self, max_items: int = 10) -> list[str]:
+        """Reflect on recent conversation history to generate insights.
+        
+        Returns:
+            List of generated insights.
+        """
+        # Placeholder for reflection logic
+        # Ideally this would query the vector store for recent chats
+        # and ask the SLM to synthesize them.
+        return []
     
     def get_relevant_memories(
         self,

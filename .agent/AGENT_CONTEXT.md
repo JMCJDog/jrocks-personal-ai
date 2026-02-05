@@ -1,76 +1,118 @@
-# Agent Authority Context: Vibe Coding (Root)
+# Agent Authority Context: JRock's Personal AI
 
-## 1. Project Identity & Purpose
-**Role**: Master Template & Dev Environment
-**Identity**: `Vibe Coding (root)` is a foundational scaffold for local/edge AI applications using Python (FastAPI).
-**Primary Goal**: Serve as the *source of truth* and *starting point* for new projects. It is designed to be forked/cloned to create specialized AI agents or applications.
-**Key Contact**: JMCJDOG (jared.cohen55@gmail.com)
+## 1. Project Identity & Core Vision
 
-## 2. Structural Logic
-The filesystem is organized to separate concerns and facilitate template instantiation:
+**Identity**: `jrocks-personal-ai` is a comprehensive AI ecosystem designed to create a digital consciousness representing JROCK.
+
+**Primary Objective**: Build a **personal AI clone** that:
+- Ingests multimedia, files, and personal data into a Small Language Model (SLM)
+- Learns JROCK's personality, writing style, and knowledge domains
+- Generates content, conversations, and potentially visual likeness
+- Evolves over time through continuous learning and memory synthesis
+
+> **The Goal**: Create an AI that truly "knows" JROCK and can represent them authentically in conversations, content creation, and interactive experiences.
+
+---
+
+## 2. Architecture Overview
+
+```
+📥 DATA INGESTION          ⚙️ PROCESSING           🧠 AI CORE              📤 GENERATION
+─────────────────────────────────────────────────────────────────────────────────────────
+Documents/PDFs ──┐                                                        ┌─→ Chatbot
+Images ──────────┼─→ Embedding → Vector Store ──→ RAG ──→ SLM ──→ Persona ┼─→ Avatar
+Video/Audio ─────┤    Pipeline    (ChromaDB)     Engine    ↓     Engine   ├─→ Content
+Text/Chats ──────┘                                     Consciousness        └─→ Creator
+```
+
+### Core Components
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| **SLM Engine** | `src/app/core/slm_engine.py` | Ollama integration, model management, prompt templates |
+| **Persona Engine** | `src/app/core/persona.py` | JROCK personality, writing style, tone calibration |
+| **Consciousness** | `src/app/core/consciousness.py` | LangGraph stateful workflows, long-term memory, self-reflection |
+| **Ingest Pipeline** | `src/app/ingest/` | Document, media, and embedding processing |
+| **RAG System** | `src/app/rag/` | Semantic retrieval, knowledge graph |
+| **Generation** | `src/app/generation/` | Chatbot, avatar, content creation |
+
+---
+
+## 3. Technology Stack
+
+| Category | Technology | Purpose |
+|----------|------------|---------|
+| **SLM** | Ollama | Run local language models |
+| **Models** | Llama 3 / Mistral / Phi-3 | Text generation |
+| **Orchestration** | LangGraph | Stateful agent workflows |
+| **Vector DB** | ChromaDB (local) / Pinecone (cloud) | Semantic search |
+| **Embeddings** | sentence-transformers | Text embeddings |
+| **Backend** | FastAPI | REST API |
+| **Storage** | Supabase | Metadata & artifacts |
+| **Image Gen** | Stable Diffusion (optional) | Avatar generation |
+| **Frontend** | Next.js + Vercel AI SDK | Chat interface |
+
+---
+
+## 4. Structural Logic
 
 | Path | Purpose | Agent Action |
 |------|---------|--------------|
-| `src/` |  Source code (`src/app` package) | **Edit here** for application logic. |
-| `tests/` | Pytest suite | **Add tests here** corresponding to new features. |
-| `Projects/` | **Product Factory** | **Target location** for generating new distinct projects. |
-| `Sandbox/` | Experimental Zone | Use for scratchpads or temp scripts. Ignored by git? Check .gitignore. |
-| `Resources/` | Dependency mgmt | Edit `requirements.txt` (Python) or `package.json` (npm). |
-| `.agent/workflows/` | **Autonomous capabilities** | **Read these** to understand available turbo actions. |
-| `Makefile` | Command abstraction | Use `make` commands for standard reliable execution. |
-| `docker-compose.yml` | Container Orchestration | Defines the standard dev/prod container stack. |
-| `.github/workflows/` | CI/CD | GitHub Actions definitions. |
+| `src/app/core/` | AI engine, persona, consciousness | **Core intelligence** - edit with care |
+| `src/app/ingest/` | Data processing pipelines | Add new data source handlers here |
+| `src/app/rag/` | Retrieval and knowledge graph | Semantic search improvements |
+| `src/app/generation/` | Output generation modules | Chatbot, avatar, content |
+| `src/app/api/routes/` | FastAPI endpoints | New API functionality |
+| `src/app/models/` | Pydantic schemas | Data validation |
+| `tests/` | Pytest suite | Add tests for new features |
+| `Resources/` | Dependencies | `requirements.txt` management |
 
-## 3. Autonomous Capabilities (Turbo Workflows)
-The system is equipped with "Turbo Workflows" located in `.agent/workflows/` that allow for autonomous execution without constant user approval.
+---
 
-> **CRITICAL**: Always prefer these workflows over manual command construction.
+## 5. Development Standards
 
-### Core Workflows
-*   **`/test`**: Auto-runs the full test suite with coverage.
-*   **`/dev`**: Starts the local development server (FastAPI) or Docker stack.
-*   **`/setup`**: Hydrates the environment (venv creation, dependency install).
-*   **`/git-push`**: Auto-stages, commits, and pushes to `origin master`.
-*   **`/docker`**: Build and run Docker containers.
-
-### Planning & Verification Workflows
-*   **`/plan`**: Create structured planning documents before implementation.
-*   **`/verify`**: Post-implementation verification (tests, lint, plan compliance).
-*   **`/debug`**: Systematic debugging with root cause analysis.
-*   **`/progress`**: Quick project status check (git, tests, TODOs).
-
-### Factory Workflow
-*   **`/new-project`**: **The Factory**. Spawns NEW separate projects from this template into `Projects/`.
-
-## 4. Operational Standards
+### Coding Standards
+- **Docstrings**: REQUIRED for all modules and functions (Google style)
+- **Type Hints**: REQUIRED for all function arguments and returns
+- **Package Management**: `pip` with `setup.cfg` (editable install)
+- **Testing**: `pytest` with minimum 80% coverage for new code
 
 ### Development Cycle
-1.  **Plan** with `/plan` (for non-trivial features).
-2.  **Modify** code in `src/app`.
-3.  **Verify** with `/verify` (runs tests + validation).
-4.  **Deploy/Save** with `/git-push`.
+1. **Plan** with `/plan` for non-trivial features
+2. **Implement** in `src/app/`
+3. **Test** with `/test` workflow
+4. **Verify** with `/verify` workflow
+5. **Commit** with `/git-push`
 
-### The Factory Pattern (Creating New Products)
-To start a new product (e.g., `weather-bot`):
-1.  **Do NOT** build it inside `src/`. `src/` is the *template's* source.
-2.  **EXECUTE** the `/new-project` workflow.
-3.  **TARGET** the `Projects/` directory (e.g., `Projects/weather-bot`) to keep the workspace organized.
-4.  This creates a fresh git repo detached from the root history.
+---
 
-## 5. Technology Stack & Constraints
-*   **Language**: Python 3.13+
-*   **Backend**: FastAPI, LangGraph (agent orchestration)
-*   **Frontend**: Next.js, Vercel AI SDK (see `Resources/package.json`)
-*   **Standards**:
-    *   **Docstrings**: REQUIRED for all modules and functions (Google style).
-    *   **Type Hints**: REQUIRED for all function arguments and returns.
-*   **Package Mgmt**: `pip` with `setup.cfg` (editable install `pip install -e .`).
-*   **Testing**: `pytest`
-*   **Container**: Docker (see `Dockerfile` & `docker-compose.yml`)
-*   **Linting**: Flake8/Black (implied via CI)
+## 6. Implementation Phases
 
-## 6. Expert Tips for Agents
-*   **Authentication**: The environment is pre-authenticated with GitHub via SSH (`C:\Users\jared\.ssh\id_ed25519`).
-*   **Settings**: VS Code settings are in `AppData/.../User/settings.json`. Font size is managed there.
-*   **Context Awareness**: If asked to "fix" something, ALWAYS run `/test` first to establish a baseline, then fix, then run `/test` again.
-*   **Use Workflows**: Prefer `/plan` → `/verify` cycle for complex changes.
+| Phase | Deliverables | Status |
+|-------|--------------|--------|
+| **1** | Project scaffold, basic SLM integration | ✅ Complete |
+| **2** | Data ingestion pipeline, vector store | 🔄 In Progress |
+| **3** | RAG system, chatbot interface | ⏳ Pending |
+| **4** | Persona fine-tuning, content generation | ⏳ Pending |
+| **5** | Frontend, likeness generation | ⏳ Pending |
+| **6** | Continuous training and refinement | ⏳ Ongoing |
+
+---
+
+## 7. Key Design Decisions
+
+1. **Local-First**: Privacy-focused with Ollama for on-device SLM execution
+2. **Modular Architecture**: Separate concerns for easy component swapping
+3. **LangGraph for State**: Complex multi-step conversations with memory
+4. **Hybrid Storage**: Local ChromaDB for development, Pinecone option for production
+5. **Persona as Configuration**: JROCK's personality traits are configurable parameters
+
+---
+
+## 8. Agent Tips
+
+- **Consciousness Module**: The `consciousness.py` is the heart of the system - it maintains JROCK's "self" across interactions
+- **Testing SLM**: Ensure Ollama is running with `ollama run llama3.2` before testing
+- **Embedding Size**: Match embedding dimensions with your chosen model (typically 384, 768, or 1536)
+- **Context Windows**: Be mindful of token limits when building RAG context
+- **Prefer Workflows**: Use `/test`, `/dev`, `/verify` for consistent execution

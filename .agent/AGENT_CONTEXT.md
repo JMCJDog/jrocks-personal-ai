@@ -39,9 +39,12 @@ Text/Chats ──────┘                                     Consciousne
 | **Persona Engine** | `src/app/core/persona.py` | JROCK personality, writing style, tone calibration |
 | **Consciousness** | `src/app/core/consciousness.py` | LangGraph stateful workflows, long-term memory, self-reflection |
 | **Ingest Pipeline** | `src/app/ingest/` | Document, media, and embedding processing |
+| **Google Drive** | `src/app/ingest/providers/google_drive_provider.py` | Index "The Book", docs, and sheets |
+| **Media Nodes** | `src/app/ingest/` (vision/location) | Face recognition and location history analysis |
 | **Chat History Sync** | `src/app/ingest/providers/` + `sync/` | Multi-provider chat import from OpenAI, Anthropic, Google, Ollama |
+| **Knowledge Graph** | `src/app/knowledge/extractors.py` | Extract ideologies, business ideas, and persona from docs |
 | **RAG System** | `src/app/rag/` | Semantic retrieval, knowledge graph |
-| **Generation** | `src/app/generation/` | Chatbot, avatar, content creation |
+| **Generation** | `src/app/generation/` | Chatbot, avatar, content creation, voice cloning |
 
 ---
 

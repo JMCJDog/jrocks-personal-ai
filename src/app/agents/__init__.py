@@ -17,6 +17,15 @@ from .workflow import (
     WorkflowStep, WorkflowResult, create_sequential, create_parallel
 )
 from .task_planner import TaskPlanner, TaskPlan, PlannedTask
+from .circuit_breaker import (
+    CircuitBreaker, CircuitBreakerConfig, CircuitBreakerError,
+    CircuitState, CircuitBreakerRegistry, get_circuit_breaker_registry,
+    with_circuit_breaker,
+)
+from .distributed import (
+    TaskQueue, InMemoryTaskQueue, QueuedTask, TaskPriority, TaskState,
+    TaskWorker, WorkerPool, DistributedCoordinator,
+)
 
 
 __all__ = [

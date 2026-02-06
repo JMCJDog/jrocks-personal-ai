@@ -18,7 +18,10 @@ logger = logging.getLogger(__name__)
 
 class FeedbackWatcher:
     """Watches a Google Doc for feedback commands."""
-    
+
+    RESPONSE_START = ">>> VIBE AGENT RESPONSE >>>"
+    RESPONSE_END = "<<< END RESPONSE <<<"
+
     def __init__(
         self,
         doc_name: str = "Vibe Coding Feedback",
@@ -56,46 +59,32 @@ class FeedbackWatcher:
         
         raise FileNotFoundError(f"Could not find Google Doc named '{self.doc_name}'. Please create it manually.")
 
-    def _get_new_commands(self, current_content: str) -> list[str]:
-        """Extract new commands from content diff.
-        
-        Simple logic: Look for lines that don't start with "[Done]" or "[Processing]"
-        and weren't in the last content.
-        
-        For reliability in this v1, we'll just look for the LAST line that isn't empty
-        and isn't marked as processed.
-        """
-        lines = [line.strip() for line in current_content.split('\n') if line.strip()]
-        
-        new_commands = []
-        for line in lines:
-            # Skip processed lines
-            if line.startswith("[") and "]" in line:
-                continue
-                
-            # If we haven't seen this content before (naive check)
-            # A better way is to rely on the agent to mark it DONE in the doc.
-            # But we can't write back to the doc easily with current Provider (it's read-focused).
-            # So we will rely on local memory of what we've processed if write-back isn't ready.
-            
-            # Actually, to make this usable without write-back:
-            # We only process the LAST line if it matches a "Command pattern" 
-            # or just treat all non-processed lines as new?
-            
-            # Let's assume we will implement write-back or just log it for now.
-            new_commands.append(line)
-            
-        return new_commands
+    def _remove_system_blocks(self, text: str) -> str:
+        """Remove all content between system response markers."""
+        while self.RESPONSE_START in text and self.RESPONSE_END in text:
+            start_idx = text.find(self.RESPONSE_START)
+            end_idx = text.find(self.RESPONSE_END) + len(self.RESPONSE_END)
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                # Remove the block
+                text = text[:start_idx] + text[end_idx:]
+            else:
+                break
+        return text
 
     def _update_doc_status(self, command: str, result: str):
-        """Append status to the doc.
-        
-        NOTE: GoogleDriveProvider currently supports READ-ONLY.
-        We need to extend it or use a raw service call here for write-back.
-        """
-        # TODO: Implement append logic in GoogleDriveProvider
+        """Append status to the doc with markers."""
+        # Implement append logic in GoogleDriveProvider
         logger.info(f"Would append to doc: [Done] {command} -> {result}")
-        # self.provider.append_text(self.doc_id, f"\n[Done] {result}")
+        try:
+            formatted_response = (
+                f"\n\n{self.RESPONSE_START}\n"
+                f"[Done] {command}\n"
+                f"Result:\n{result}\n"
+                f"{self.RESPONSE_END}\n"
+            )
+            self.provider.append_text(self.doc_id, formatted_response)
+        except Exception as e:
+            logger.error(f"Failed to write back to doc: {e}")
 
     def start(self):
         """Start the polling loop."""
@@ -122,12 +111,16 @@ class FeedbackWatcher:
                     if current_content != self.last_content:
                         logger.info("Change detected in document!")
                         
-                        # Diff logic
-                        # This is tricky without strict structure. 
-                        # We'll cheat: look for "COMMAND: " prefix or just take the huge diff?
-                        # Let's just find lines present NOW that weren't BEFORE.
-                        old_lines = set(self.last_content.split('\n'))
-                        new_lines = set(current_content.split('\n'))
+                        # CLEAN Diff logic:
+                        # 1. Remove all system response blocks from BOTH current and last content (if needed)
+                        # Actually, we just need to ignore system blocks in the NEW content to find user commands.
+                        # But to compare apples to apples, let's clean both.
+                        
+                        clean_current = self._remove_system_blocks(current_content)
+                        clean_last = self._remove_system_blocks(self.last_content)
+                        
+                        old_lines = set(clean_last.split('\n'))
+                        new_lines = set(clean_current.split('\n'))
                         
                         added_lines = list(new_lines - old_lines)
                         

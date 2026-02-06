@@ -37,9 +37,25 @@ class GoogleDriveProvider:
         >>> docs = provider.index_folder("Memory/The Book")
     """
     
-    SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
-    credentials_path = Path("credentials.json")
-    token_path = Path("token.pickle")
+    SCOPES = [
+        'https://www.googleapis.com/auth/drive.readonly',
+        'https://www.googleapis.com/auth/documents', # For editing Docs
+        'https://www.googleapis.com/auth/drive'      # General access
+    ]
+    
+    # Resolve paths relative to project root
+    # This file is in src/app/ingest/providers/
+    # Root is up 5 levels? Let's verify:
+    # src/app/ingest/providers/google_drive_provider.py
+    # .parent -> providers
+    # .parent -> ingest
+    # .parent -> app
+    # .parent -> src
+    # .parent -> project_root
+    _project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
+    
+    credentials_path = _project_root / "credentials.json"
+    token_path = _project_root / "token.pickle"
     
     # MIME types for export
     MIME_TYPES = {
@@ -240,3 +256,46 @@ class GoogleDriveProvider:
                     processed_docs.append(doc)
                     
         return processed_docs
+
+    def append_text(self, file_id: str, text: str) -> None:
+        """Append text to the end of a Google Doc.
+        
+        Args:
+            file_id: The Drive file ID.
+            text: Text to append.
+        """
+        # Ensure we have credentials
+        if not self.service:
+            self.authenticate()
+            
+        try:
+            # We need the docs service, not drive service, for edits
+            # Note: We reuse the credentials
+            docs_service = build('docs', 'v1', credentials=self.creds)
+            
+            # Get the document to find the end index
+            doc = docs_service.documents().get(documentId=file_id).execute()
+            content = doc.get('body').get('content')
+            end_index = content[-1].get('endIndex') - 1
+            
+            requests = [
+                {
+                    'insertText': {
+                        'location': {
+                            'index': end_index,
+                        },
+                        'text': text
+                    }
+                }
+            ]
+            
+            docs_service.documents().batchUpdate(
+                documentId=file_id, 
+                body={'requests': requests}
+            ).execute()
+            
+            logger.info(f"Appended text to doc {file_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to append to doc {file_id}: {e}")
+            raise

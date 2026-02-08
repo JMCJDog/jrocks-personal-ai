@@ -3,6 +3,7 @@ import os
 import logging
 from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Any
+from .model_registry import ModelRegistry, ModelTier
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -205,6 +206,19 @@ class ModelRouter:
 
     def get_provider(self, model_name: str) -> ModelProvider:
         """Get or create a provider for the specific model."""
+        # Check if model_name is a Tier
+        try:
+            tier = ModelTier(model_name.lower())
+            resolved_model = ModelRegistry.get_best_model(tier, os.environ)
+            if resolved_model:
+                model_name = resolved_model
+            else:
+                # Fallback if no API keys found for tier
+                logger.warning(f"No API keys found for tier {tier}, falling back to local llama3.2")
+                model_name = "llama3.2"
+        except ValueError:
+            pass # Not a tier, assume it's a specific model name
+
         if model_name in self._providers:
             return self._providers[model_name]
         
@@ -214,11 +228,14 @@ class ModelRouter:
 
     def _create_provider(self, model_name: str) -> ModelProvider:
         """Factory method to create the correct provider."""
-        if "gemini" in model_name.lower():
+        # Check provider type based on model name via Registry (robust) or fallback to simple string check
+        provider_type = ModelRegistry.get_provider_for_model(model_name)
+        
+        if provider_type == "gemini":
             return GeminiProvider(model_name)
-        elif "claude" in model_name.lower():
+        elif provider_type == "claude":
             return AnthropicProvider(model_name)
-        elif "gpt" in model_name.lower():
+        elif provider_type == "openai":
             return OpenAIProvider(model_name)
         else:
             # Default to Ollama for everything else (llama, mistral, etc.)

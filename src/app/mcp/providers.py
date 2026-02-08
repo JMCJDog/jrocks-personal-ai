@@ -9,6 +9,7 @@ from typing import Optional, Any, AsyncIterator
 from dataclasses import dataclass, field
 from enum import Enum
 import os
+from ..core.model_registry import ModelRegistry, ModelTier
 
 
 class ProviderType(str, Enum):
@@ -508,13 +509,13 @@ class OllamaProvider(LLMProvider):
 
 
 def get_provider(
-    provider_type: str | ProviderType,
+    provider_type: str | ProviderType | ModelTier,
     **kwargs
 ) -> LLMProvider:
     """Factory function to get an LLM provider.
     
     Args:
-        provider_type: Provider type string or enum.
+        provider_type: Provider type string, enum, or ModelTier.
         **kwargs: Provider configuration options.
     
     Returns:
@@ -522,8 +523,37 @@ def get_provider(
     
     Example:
         >>> provider = get_provider("claude", api_key="...")
-        >>> provider = get_provider(ProviderType.OPENAI)
+        >>> provider = get_provider(ModelTier.SMART)
     """
+    # Handle ModelTier or string that matches a tier
+    tier_input = None
+    if isinstance(provider_type, ModelTier):
+        tier_input = provider_type
+    elif isinstance(provider_type, str):
+        try:
+            tier_input = ModelTier(provider_type.lower())
+        except ValueError:
+            pass
+            
+    if tier_input:
+        # Resolve the best model for this tier
+        best_model = ModelRegistry.get_best_model(tier_input, os.environ)
+        if not best_model:
+            # Fallback to local if no API keys found but tier requested
+            if tier_input == ModelTier.LOCAL:
+                 best_model = "llama3.2"
+            else:
+                 # Default fallback to ollama/llama3.2 if nothing else matches
+                 best_model = "llama3.2"
+        
+        # Now determine provider for this model
+        provider_str = ModelRegistry.get_provider_for_model(best_model)
+        provider_type = ProviderType(provider_str)
+        
+        # Ensure model is passed in config if not explicitly provided
+        if "model" not in kwargs:
+            kwargs["model"] = best_model
+
     if isinstance(provider_type, str):
         provider_type = ProviderType(provider_type.lower())
     

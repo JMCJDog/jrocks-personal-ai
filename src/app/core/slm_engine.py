@@ -13,7 +13,7 @@ import ollama
 class ModelConfig:
     """Configuration for the SLM model."""
     
-    model_name: str = "llama3.2"
+    model_name: str = "fast"  # Defaults to dynamic "fast" tier (e.g. Gemini Flash)
     temperature: float = 0.7
     max_tokens: int = 2048
     system_prompt: str = ""

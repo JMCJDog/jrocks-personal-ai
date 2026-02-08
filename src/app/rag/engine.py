@@ -1,8 +1,8 @@
 from typing import List, Dict, Optional
 import logging
 
-from src.app.ingest.embedding_pipeline import get_pipeline
-from src.app.core.slm_engine import SLMEngine, ModelConfig
+from ..ingest.embedding_pipeline import get_pipeline
+from ..core.slm_engine import SLMEngine, ModelConfig
 
 logger = logging.getLogger(__name__)
 

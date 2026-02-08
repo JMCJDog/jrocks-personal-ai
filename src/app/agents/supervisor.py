@@ -121,6 +121,18 @@ class SupervisorAgent(BaseAgent):
         """
         context = context or {}
         
+        # Check for forced routing via context
+        target_agent = context.get("target_agent")
+        if target_agent:
+            # Handle supervisor specifically
+            if target_agent == "supervisor":
+                return self._handle_direct(message, context)
+                
+            # Handle specific agents
+            if target_agent in self._agents:
+                response = self._agents[target_agent].process(message, context)
+                return self._wrap_response(response)
+        
         # Route the request
         routing = self._route_request(message)
         

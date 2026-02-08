@@ -169,6 +169,7 @@ class Chatbot:
         session_id: Optional[str] = None,
         include_context: bool = True,
         images: Optional[list[str]] = None,
+        context: Optional[dict] = None,
     ) -> str:
         """Send a message and get a response.
         
@@ -177,6 +178,7 @@ class Chatbot:
             session_id: Optional session ID to continue a conversation.
             include_context: Whether to include RAG context.
             images: Optional list of base64 encoded images.
+            context: Optional context dictionary (e.g. for agent routing).
         
         Returns:
             str: The assistant's response.
@@ -223,6 +225,22 @@ class Chatbot:
         session.add_message("user", message)
         self.memory_manager.add_message(session.session_id, "user", message)
         
+        # Check for agent routing
+        if context and context.get("target_agent"):
+            try:
+                from ..agents.supervisor import AgentOrchestrator
+                orchestrator = AgentOrchestrator()
+                result = orchestrator.run(message, context)
+                response = result.content
+                
+                # Add response to session
+                session.add_message("assistant", response)
+                self.memory_manager.add_message(session.session_id, "assistant", response)
+                return response
+            except Exception as e:
+                print(f"Agent orchestration failed: {e}")
+                # Fallback to normal generation
+        
         # Generate response using RAG Engine if enabled, otherwise raw SLM
         if self.use_rag:
             # RAGEngine might need an update to handle images as well, 
@@ -234,13 +252,14 @@ class Chatbot:
                 response = self.rag_engine.generate_response(
                     message, 
                     enhance_context=include_context,
-                    images=image_bytes_list
+                    images=image_bytes_list,
+                    context=context
                 )
             except TypeError:
                 # Fallback if RAGEngine doesn't support images yet
-                response = self.engine.generate(message, images=image_bytes_list)
+                response = self.engine.generate(message, images=image_bytes_list, context=context)
         else:
-            response = self.engine.generate(message, images=image_bytes_list)
+            response = self.engine.generate(message, images=image_bytes_list, context=context)
         
         # Add response to session
         session.add_message("assistant", response)

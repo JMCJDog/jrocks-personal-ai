@@ -72,13 +72,14 @@ class ApiClient {
     }
 
     // Chat
-    async sendChatMessage(message: string, sessionId?: string, images?: string[]): Promise<ChatResponse> {
+    async sendChatMessage(message: string, sessionId?: string, images?: string[], targetAgent?: string): Promise<ChatResponse> {
         return this.request<ChatResponse>('/chat/', {
             method: 'POST',
             body: JSON.stringify({
                 message,
                 session_id: sessionId,
-                images: images
+                images: images,
+                context: targetAgent ? { target_agent: targetAgent } : undefined
             }),
         });
     }
@@ -154,6 +155,23 @@ class ApiClient {
         }
 
         return response.json();
+    }
+
+    // Analytics
+    async getAnalyticsHealth(): Promise<any> {
+        return this.request('/analytics/health');
+    }
+
+    async getAnalyticsUsage(): Promise<any> {
+        return this.request('/analytics/usage');
+    }
+
+    async getAnalyticsFreshness(): Promise<any[]> {
+        return this.request('/analytics/freshness');
+    }
+
+    async getAnalyticsCodeStats(): Promise<any> {
+        return this.request('/analytics/code-stats');
     }
 }
 

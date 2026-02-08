@@ -72,10 +72,11 @@ class ConversationContext:
 
 
 class SLMEngine:
-    """Engine for interacting with Small Language Models via Ollama.
+    """Engine for interacting with Language Models via ModelRouter.
     
     Provides a high-level interface for generating responses with
-    persona injection and conversation context management.
+    persona injection and conversation context management, supporting
+    multiple providers (Ollama, Gemini, Anthropic, OpenAI).
     
     Example:
         >>> engine = SLMEngine()
@@ -91,7 +92,9 @@ class SLMEngine:
         """
         self.config = config or ModelConfig()
         self.context = ConversationContext()
-        self._client = ollama.Client()
+        
+        from .model_router import ModelRouter
+        self.router = ModelRouter()
         
         # Initialize with system prompt if provided
         if self.config.system_prompt:
@@ -112,7 +115,8 @@ class SLMEngine:
         self,
         user_message: str,
         images: Optional[list[bytes]] = None,
-        stream: bool = False
+        stream: bool = False,
+        context: Optional[dict] = None
     ) -> str:
         """Generate a response to the user message.
         
@@ -120,6 +124,7 @@ class SLMEngine:
             user_message: The user's input message.
             images: Optional list of image bytes for multimodal models.
             stream: Whether to stream the response (not yet implemented).
+            context: Optional context dictionary (e.g. for agent routing).
         
         Returns:
             str: The model's response.
@@ -128,21 +133,39 @@ class SLMEngine:
         self.context.add_message("user", user_message, images=images)
         
         try:
-            response = self._client.chat(
-                model=self.config.model_name,
-                messages=self.context.get_messages_for_api(),
-                options={
-                    "temperature": self.config.temperature,
-                    "num_predict": self.config.max_tokens,
-                }
+            # Get the appropriate provider
+            provider = self.router.get_provider(self.config.model_name)
+            
+            # Construct system prompt from context if needed
+            system_prompt = next((m.content for m in self.context.messages if m.role == "system"), None)
+            
+            # For providers that don't support full chat history in API (like our simple wrapper),
+            # we might need to concatenate history.
+            # But for now, let's assume we just send the last message + system prompt for simplicity,
+            # OR we should update ModelProvider to accept messages list.
+            # Given the interface in ModelProvider.generate(prompt, ...), let's concatenate history for now.
+            
+            full_prompt = ""
+            for msg in self.context.messages:
+                if msg.role != "system":
+                    full_prompt += f"{msg.role}: {msg.content}\n"
+            
+            # If history is empty (just user message), full_prompt is just the message
+            if not full_prompt:
+                full_prompt = user_message
+
+            response_text = provider.generate(
+                prompt=full_prompt,
+                system_prompt=system_prompt,
+                images=images,
+                max_tokens=self.config.max_tokens,
+                temperature=self.config.temperature
             )
             
-            assistant_message = response["message"]["content"]
-            
             # Add assistant response to context
-            self.context.add_message("assistant", assistant_message)
+            self.context.add_message("assistant", response_text)
             
-            return assistant_message
+            return response_text
             
         except Exception as e:
             error_msg = f"Error generating response: {str(e)}"
@@ -159,9 +182,8 @@ class SLMEngine:
             bool: True if the model is available.
         """
         try:
-            models = self._client.list()
-            model_names = [m["name"] for m in models.get("models", [])]
-            return any(self.config.model_name in name for name in model_names)
+            provider = self.router.get_provider(self.config.model_name)
+            return provider.is_available()
         except Exception:
             return False
 
@@ -184,4 +206,6 @@ def quick_generate(
     """
     config = ModelConfig(model_name=model, system_prompt=system_prompt or "")
     engine = SLMEngine(config)
+    # For quick gen, we don't need history, so just pass message directly to avoid formatting
+    # engine.generate adds to context, which is fine
     return engine.generate(message)

@@ -3,7 +3,7 @@
 ![CI](https://github.com/JMCJDOG/jrocks-personal-ai/actions/workflows/ci.yml/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-🧠 **A robust, scalable personal AI consciousness and surveillance technology product** that ingests multimedia, files, and various data types into a Small Language Model (SLM). Designed to be sold commercially/gov and adopted as a turnkey monetization and surveillance solution.
+🧠 **A robust, scalable personal AI consciousness, monetization enablement and counter-surveillance data technology product** that ingests multimedia, files, and various data types into a Small Language Model (SLM). Designed to be sold commercially/gov and adopted as a turnkey monetization, surveillance, and **counter-surveillance enablement** solution.
 
 ## ✨ Features
 
@@ -14,6 +14,8 @@
 - **Chatbot Interface** - Natural conversations with JROCK's AI
 - **Content Generation** - Blog posts, social media, and creative writing
 - **Likeness Generation** - Avatar and image generation (Stable Diffusion)
+- **Counter-Surveillance** - Tools for privacy defense, intrusion detection, and data sovereignty
+- **[Roadmap](ROADMAP.md)** - View future plans for data integration and pipelines.
 
 ## 🏗️ Architecture
 

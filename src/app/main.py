@@ -73,6 +73,7 @@ def root() -> dict[str, str]:
 
 
 @app.get("/health")
+@app.get("/api/health")
 def health() -> dict[str, str]:
     """Health check endpoint for monitoring and load balancers.
     

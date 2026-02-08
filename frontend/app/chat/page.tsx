@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api, ChatMessage } from '@/lib/api';
 import CameraPreview, { CameraPreviewHandle } from '@/components/chat/CameraPreview';
 
@@ -10,6 +11,9 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+
+  const searchParams = useSearchParams();
+  const targetAgent = searchParams.get('agent');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -44,7 +48,7 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const response = await api.sendChatMessage(textToSend, undefined, images);
+      const response = await api.sendChatMessage(textToSend, undefined, images, targetAgent || undefined);
       const assistantMessage: ChatMessage = {
         role: 'assistant',
         content: response.response || 'No response received',
@@ -412,8 +416,5 @@ export default function ChatPage() {
         }
       `}</style>
     </div>
-  );
-}
-    </div >
   );
 }

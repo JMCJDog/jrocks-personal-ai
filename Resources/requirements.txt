@@ -39,3 +39,9 @@ uvicorn                 # Server to run FastAPI
 # --- Data Handling ---
 pandas                  # Essential for data manipulation
 numpy                   # Math operations (needed for AI)
+psutil                  # System monitoring and process management
+
+# --- Model Providers ---
+google-generativeai     # Gemini API
+anthropic               # Claude API
+openai                  # OpenAI API

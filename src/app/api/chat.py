@@ -63,7 +63,8 @@ async def chat(request: ChatRequest) -> ChatResponse:
             message=request.message,
             session_id=session_id,
             include_context=request.include_context,
-            images=request.images
+            images=request.images,
+            context=request.context  # Pass context to chatbot
         )
         
         return ChatResponse(

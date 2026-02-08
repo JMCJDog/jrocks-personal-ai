@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: '🏠' },
+  { href: '/', label: 'Home', icon: '🏠' },
+  { href: '/dashboard', label: 'Monitor', icon: '📊' },
   { href: '/chat', label: 'Chat', icon: '💬' },
   { href: '/agents', label: 'Agents', icon: '🤖' },
   { href: '/ingest', label: 'Ingest', icon: '📁' },
-  { href: '/analytics', label: 'Analytics', icon: '🗺️' },
+  { href: '/analytics', label: 'Heatmap', icon: '🗺️' },
   { href: '/webhooks', label: 'Webhooks', icon: '🔔' },
   { href: '/settings', label: 'Settings', icon: '⚙️' },
 ];

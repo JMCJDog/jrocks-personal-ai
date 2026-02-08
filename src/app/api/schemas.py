@@ -17,6 +17,7 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = Field(None, description="Session ID to continue a conversation")
     images: Optional[list[str]] = Field(None, description="List of base64 encoded images for vision support")
     include_context: bool = Field(True, description="Whether to use RAG context")
+    context: Optional[dict] = Field(None, description="Additional context for the agent (e.g. target_agent)")
     
     model_config = {"json_schema_extra": {"examples": [
         {"message": "What is in this image?", "images": ["base64_data_here"], "include_context": True}

@@ -3,7 +3,7 @@
 ![CI](https://github.com/JMCJDOG/jrocks-personal-ai/actions/workflows/ci.yml/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-🧠 **A comprehensive AI ecosystem** that ingests multimedia, files, and various data types into a Small Language Model (SLM) to build a digital consciousness representing JROCK, complete with chatbot, likeness generation, and interactive capabilities.
+🧠 **A robust, scalable personal AI consciousness and surveillance technology product** that ingests multimedia, files, and various data types into a Small Language Model (SLM). Designed to be sold commercially/gov and adopted as a turnkey monetization and surveillance solution.
 
 ## ✨ Features
 

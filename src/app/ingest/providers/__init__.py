@@ -10,6 +10,8 @@ from .openai_provider import OpenAIProvider
 from .anthropic_provider import AnthropicProvider
 from .google_provider import GoogleProvider
 from .ollama_provider import OllamaProvider
+from .google_drive_provider import GoogleDriveProvider
+from .google_photos_provider import GooglePhotosProvider
 
 
 __all__ = [
@@ -23,4 +25,6 @@ __all__ = [
     "AnthropicProvider",
     "GoogleProvider",
     "OllamaProvider",
+    "GoogleDriveProvider",
+    "GooglePhotosProvider",
 ]

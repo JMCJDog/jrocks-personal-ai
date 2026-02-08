@@ -2,12 +2,12 @@
 
 ## 1. Project Identity & Core Vision
 
-**Identity**: `jrocks-personal-ai` is a comprehensive AI ecosystem for building digital consciousness - with JROCK as the reference implementation.
+**Identity**: `jrocks-personal-ai` is a **personal ai consciousness and surveillance technology product** - with JROCK as the reference implementation.
 
 ### 🎯 End Objectives
 
-1. **Turnkey Framework**: Deliver a complete, production-ready solution that anyone can deploy to create their own AI consciousness
-2. **Scalable Architecture**: Support multiple users with isolated persona stores, configurable models, and cloud-native deployment options  
+1. **Turnkey Monetization & Surveillance Solution**: Deliver a complete, production-ready solution that can be sold commercially/gov as a robust data product
+2. **Commercial/Gov Adoption**: Scalable architecture supporting multiple users with isolated persona stores and cloud-native deployment options  
 3. **Reference Implementation**: JROCK serves as the proof-of-concept, demonstrating the full capability of the platform
 
 ### Primary Capabilities
@@ -16,7 +16,8 @@
 - Generate content, conversations, and potentially visual likeness
 - Evolve over time through continuous learning and memory synthesis
 
-> **The Vision**: Not just an AI for JROCK, but a **productizable platform** where anyone can create an AI that truly "knows" them and represents them authentically.
+> **The Vision**: A **robust, scalable professional AI product** today. We focus on shipping workable, amazing technology that is ready for scale, avoiding theoretical long-term optimization until the product itself is undeniable.
+
 
 ---
 
@@ -41,6 +42,8 @@ Text/Chats ──────┘                                     Consciousne
 | **Ingest Pipeline** | `src/app/ingest/` | Document, media, and embedding processing |
 | **Google Drive** | `src/app/ingest/providers/google_drive_provider.py` | Index "The Book", docs, and sheets |
 | **Media Nodes** | `src/app/ingest/` (vision/location) | Face recognition and location history analysis |
+| **Local Photo Processor** | `src/app/ingest/process_local_photos.py` | Local facial recognition scan (offline) |
+| **Drive Indexer** | `src/app/scripts/index_drive.py` | Index Google Drive metadata to SQLite |
 | **Chat History Sync** | `src/app/ingest/providers/` + `sync/` | Multi-provider chat import from OpenAI, Anthropic, Google, Ollama |
 | **Knowledge Graph** | `src/app/knowledge/extractors.py` | Extract ideologies, business ideas, and persona from docs |
 | **RAG System** | `src/app/rag/` | Semantic retrieval, knowledge graph |
@@ -92,7 +95,9 @@ Text/Chats ──────┘                                     Consciousne
 2. **Implement** in `src/app/`
 3. **Test** with `/test` workflow
 4. **Verify** with `/verify` workflow
-5. **Commit** with `/git-push`
+5. **Scan Photos** with `/photo-scan` (for local photo ingestion)
+6. **Index Drive** with `/index-drive` (to make files searchable)
+6. **Commit** with `/git-push`
 
 ---
 
@@ -110,9 +115,9 @@ Text/Chats ──────┘                                     Consciousne
 ---
 
 ## 7. Key Design Decisions
-
-1. **Local-First**: Privacy-focused with Ollama for on-device SLM execution
-2. **Modular Architecture**: Separate concerns for easy component swapping
+1. **Product-First Architecture**: Build "Amazing" features now; use standard, scalable patterns (like FastAPI/Docker) but don't over-engineer for hypothetical future problems.
+2. **Local-First**: Privacy-focused with Ollama for on-device SLM execution.
+3. **Modular Architecture**: Separate concerns for easy component swapping.
 3. **LangGraph for State**: Complex multi-step conversations with memory
 4. **Hybrid Storage**: Local ChromaDB for development, Pinecone option for production
 5. **Persona as Configuration**: JROCK's personality traits are configurable parameters

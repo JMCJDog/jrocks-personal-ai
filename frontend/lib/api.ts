@@ -19,7 +19,8 @@ interface ChatResponse {
 
 interface AgentResponse {
     agent: string;
-    response: string;
+    content: string;  // Backend returns 'content', not 'response'
+    response: string; // Alias for backwards compatibility
     execution_time: number;
 }
 
@@ -34,6 +35,12 @@ interface WebhookConfig {
 
 interface HealthResponse {
     status: string;
+}
+
+interface VoiceResponse {
+    input_text: string;
+    response_text: string;
+    audio_url: string;
 }
 
 class ApiClient {
@@ -65,10 +72,14 @@ class ApiClient {
     }
 
     // Chat
-    async sendChatMessage(message: string, conversationId?: string): Promise<ChatResponse> {
+    async sendChatMessage(message: string, sessionId?: string, images?: string[]): Promise<ChatResponse> {
         return this.request<ChatResponse>('/chat/', {
             method: 'POST',
-            body: JSON.stringify({ message, conversation_id: conversationId }),
+            body: JSON.stringify({
+                message,
+                session_id: sessionId,
+                images: images
+            }),
         });
     }
 
@@ -124,6 +135,22 @@ class ApiClient {
 
         if (!response.ok) {
             throw new Error('Upload failed');
+        }
+
+        return response.json();
+    }
+
+    async sendVoiceMessage(audioBlob: Blob): Promise<VoiceResponse> {
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'voice.wav');
+
+        const response = await fetch(`${API_BASE}/chat/voice`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error('Voice chat failed');
         }
 
         return response.json();

@@ -1,10 +1,10 @@
-"""Chat API routes for JRock's Personal AI.
-
-Provides endpoints for interactive conversations with JROCK's AI.
-"""
-
-from typing import Optional
-from fastapi import APIRouter, HTTPException
+from typing import Optional, List
+from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
+from fastapi.responses import FileResponse
+from pathlib import Path
+import shutil
+import time
+import logging
 
 from .schemas import (
     ChatRequest,
@@ -63,6 +63,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
             message=request.message,
             session_id=session_id,
             include_context=request.include_context,
+            images=request.images
         )
         
         return ChatResponse(
@@ -147,3 +148,59 @@ async def reset_session(session_id: str) -> dict:
         return {"message": f"Session {session_id} has been reset"}
     
     return {"message": "Session not found or already empty"}
+@router.post("/voice")
+async def chat_voice(
+    file: UploadFile = File(...),
+    chatbot: Chatbot = Depends(get_chatbot)
+):
+    """Voice chat endpoint.
+    
+    Processes audio input, generates AI response, and returns both 
+    text and audio output.
+    """
+    try:
+        from ..generation.stt import STTEngine
+        from ..generation.voice import VoiceEngine
+        
+        stt = STTEngine()
+        tts = VoiceEngine()
+        
+        # 1. Save uploaded audio to temp file
+        temp_dir = Path("data/temp/audio")
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        temp_audio_path = temp_dir / f"input_{int(time.time())}.wav"
+        
+        with open(temp_audio_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # 2. Transcribe
+        transcription = stt.transcribe(temp_audio_path)
+        if not transcription:
+            return {"error": "Could not transcribe audio"}
+            
+        # 3. Generate chatbot response
+        response_text = chatbot.chat(transcription)
+        
+        # 4. Generate speech for response
+        audio_response_path = await tts.generate_speech(response_text)
+        
+        # Return text and audio link (or stream the file)
+        # For simplicity, we return the paths and text
+        # In a real app, you might use FileResponse for the audio
+        return {
+            "input_text": transcription,
+            "response_text": response_text,
+            "audio_url": f"/api/chat/audio/{Path(audio_response_path).name}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Voice chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/audio/{filename}")
+async def get_audio(filename: str):
+    """Serve generated audio files."""
+    audio_path = Path("data/output/audio") / filename
+    if not audio_path.exists():
+        raise HTTPException(status_code=404, detail="Audio file not found")
+    return FileResponse(audio_path)

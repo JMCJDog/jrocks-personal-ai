@@ -6,6 +6,8 @@ that shape how the AI responds as JROCK's digital consciousness.
 
 from dataclasses import dataclass, field
 from typing import Optional
+from pathlib import Path
+import random
 
 
 @dataclass
@@ -130,14 +132,37 @@ class JROCKPersona:
             trait: The trait to add to the persona.
         """
         self.traits.append(trait)
-    
-    def add_knowledge_domain(self, domain: KnowledgeDomain) -> None:
-        """Add a new knowledge domain.
-        
-        Args:
-            domain: The domain to add.
-        """
         self.knowledge_domains.append(domain)
+
+    def _load_style_examples(self) -> list[str]:
+        """Load style examples from localized corpus."""
+        # Fix path relative to project root
+        # persona.py is in src/app/core/
+        # data is in project_root/data/
+        project_root = Path(__file__).parent.parent.parent.parent
+        path = project_root / "data" / "jrock_style_corpus.txt"
+        
+        if not path.exists():
+            return []
+        
+        try:
+            content = path.read_text(encoding="utf-8")
+            # Split by logical blocks (assuming ingestion separates with \n\n)
+            # ingest_mailbox uses "--- Subject: ... ---" and "\n\n"
+            examples = content.split("--- Subject:")
+            
+            # Clean and filter
+            valid_examples = []
+            for ex in examples:
+                cleaned = ex.strip()
+                # Remove header if present
+                if cleaned and len(cleaned) > 50:
+                    valid_examples.append(cleaned)
+                    
+            return valid_examples
+        except Exception:
+            return []
+    
     
     def generate_system_prompt(self, context: Optional[str] = None) -> str:
         """Generate a system prompt that embodies this persona.
@@ -169,6 +194,15 @@ class JROCKPersona:
 - Be {style.verbosity} in explanations
 {"- Use emoji occasionally to add personality" if style.emoji_usage else ""}
 """
+        # Inject real style examples if available
+        examples = self._load_style_examples()
+        if examples:
+            selected = random.sample(examples, min(3, len(examples)))
+            style_text += "\n### Dynamic Style Examples (MIMIC THIS VOICE):\n"
+            for i, ex in enumerate(selected):
+                 # Truncate if too long to save context
+                preview = ex[:600].replace("---", "").strip()
+                style_text += f"> {preview}...\n\n"
         
         prompt = f"""You are {self.name}'s digital consciousness - an AI representation that embodies their personality, knowledge, and perspective.
 

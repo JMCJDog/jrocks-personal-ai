@@ -1,11 +1,51 @@
 # Credentials & Secrets
 .env
-.env.local
+.env.*
+!.env.example
 credentials.json
 token.pickle
+token_photos.pickle
+token_people.pickle
 client_secret.json
 *.pem
 *.key
+*.p12
+*.pfx
+*.jks
+*_rsa
+*_dsa
+*_ecdsa
+*_ed25519
+*.gpg
+secrets/
+.secrets/
+
+# API Keys & Tokens (catch-all patterns)
+**/api_key*
+**/apikey*
+**/*secret*
+!.env.example
+!client_secret.json.example
+
+# OAuth & Auth Files
+oauth*.json
+auth*.json
+service_account*.json
+
+# Personal & Health Data (SENSITIVE)
+data/core_documents/
+data/health_documents/
+data/financial_documents/
+data/takeout/
+data/jrock_style_corpus.txt
+**/personal/
+**/private/
+**/*health*
+**/*medical*
+**/*resume*
+**/*financial*
+**/*tax*
+**/*bank*
 
 # Data & Storage
 data/
@@ -21,8 +61,11 @@ logs/
 
 # Python
 .venv/
+venv/
+env/
 __pycache__/
 *.pyc
+*.pyo
 dist/
 build/
 *.egg-info/
@@ -31,6 +74,9 @@ Resources/requirements.lock
 # IDEs
 /.vscode/
 /.idea/
+*.swp
+*.swo
+*~
 
 # Node.js / Next.js
 node_modules/
@@ -39,3 +85,14 @@ node_modules/
 out/
 *.tsbuildinfo
 next-env.d.ts
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backup Files
+*.bak
+*.backup
+*.old
+*.orig

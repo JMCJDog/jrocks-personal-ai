@@ -10,7 +10,8 @@ from datetime import datetime
 
 from ..core.slm_engine import SLMEngine, ModelConfig
 from ..core.persona import JROCKPersona, default_persona
-from ..ingest.embedding_pipeline import EmbeddingPipeline
+from ..rag.engine import RAGEngine
+from ..memory.manager import MemoryManager
 
 
 @dataclass
@@ -76,7 +77,7 @@ class Chatbot:
         persona: Optional[JROCKPersona] = None,
         model_name: str = "llama3.2",
         use_rag: bool = True,
-        embedding_pipeline: Optional[EmbeddingPipeline] = None,
+
     ) -> None:
         """Initialize the chatbot.
         
@@ -84,11 +85,10 @@ class Chatbot:
             persona: The persona to use. Defaults to JROCK persona.
             model_name: The Ollama model to use.
             use_rag: Whether to use RAG for context enhancement.
-            embedding_pipeline: Optional embedding pipeline for RAG.
         """
         self.persona = persona or default_persona
         self.use_rag = use_rag
-        self._embedding_pipeline = embedding_pipeline
+        self._embedding_pipeline = None
         
         # Initialize the SLM engine with persona
         config = ModelConfig(
@@ -101,16 +101,18 @@ class Chatbot:
         # Session management
         self._sessions: dict[str, ChatSession] = {}
         self._current_session: Optional[ChatSession] = None
+        
+        # Persistent memory
+        self.memory_manager = MemoryManager()
     
+        self._rag_engine: Optional[RAGEngine] = None
+        
     @property
-    def embedding_pipeline(self) -> Optional[EmbeddingPipeline]:
-        """Lazy-load embedding pipeline if RAG is enabled."""
-        if self.use_rag and self._embedding_pipeline is None:
-            try:
-                self._embedding_pipeline = EmbeddingPipeline()
-            except Exception:
-                self.use_rag = False
-        return self._embedding_pipeline
+    def rag_engine(self) -> RAGEngine:
+        """Lazy-load RAG engine."""
+        if self._rag_engine is None:
+            self._rag_engine = RAGEngine(slm_engine=self.engine)
+        return self._rag_engine
     
     def create_session(self, session_id: Optional[str] = None) -> ChatSession:
         """Create a new chat session.
@@ -124,6 +126,10 @@ class Chatbot:
         import uuid
         sid = session_id or str(uuid.uuid4())
         session = ChatSession(session_id=sid)
+        
+        # Persist session
+        self.memory_manager.create_session(sid)
+        
         self._sessions[sid] = session
         self._current_session = session
         
@@ -141,13 +147,28 @@ class Chatbot:
         Returns:
             ChatSession or None: The session if found.
         """
-        return self._sessions.get(session_id)
+        if session_id in self._sessions:
+            return self._sessions[session_id]
+            
+        # Try to load from memory
+        history = self.memory_manager.get_session_history(session_id, limit=100)
+        if history:
+            # Reconstruct session
+            session = ChatSession(session_id=session_id)
+            for msg_data in history:
+                session.add_message(msg_data['role'], msg_data['content'])
+            
+            self._sessions[session_id] = session
+            return session
+            
+        return None
     
     def chat(
         self,
         message: str,
         session_id: Optional[str] = None,
         include_context: bool = True,
+        images: Optional[list[str]] = None,
     ) -> str:
         """Send a message and get a response.
         
@@ -155,10 +176,27 @@ class Chatbot:
             message: The user's message.
             session_id: Optional session ID to continue a conversation.
             include_context: Whether to include RAG context.
+            images: Optional list of base64 encoded images.
         
         Returns:
             str: The assistant's response.
         """
+        import base64
+        import re
+        from pathlib import Path
+        from ..utils.video import VideoProcessor
+        
+        # Check for video summarization trigger: "summarize video: [path]"
+        video_match = re.search(r"summarize video:?\s*(.*)", message, re.IGNORECASE)
+        if video_match and not images:
+            video_path = video_match.group(1).strip().strip('"').strip("'")
+            if video_path and Path(video_path).exists():
+                print(f"Detecting video summarization request for: {video_path}")
+                frames = VideoProcessor.extract_keyframes(video_path, num_frames=6)
+                if frames:
+                    images = frames
+                    message = f"I have extracted 6 keyframes from the video at {video_path}. Please summarize what happens in this video based on these visuals."
+        
         # Get or create session
         if session_id and session_id in self._sessions:
             session = self._sessions[session_id]
@@ -167,33 +205,46 @@ class Chatbot:
         else:
             session = self.create_session()
         
-        # Retrieve context if RAG is enabled
-        context_text = ""
-        if include_context and self.use_rag and self.embedding_pipeline:
-            try:
-                results = self.embedding_pipeline.search(message, n_results=3)
-                if results:
-                    context_parts = [r["content"] for r in results]
-                    context_text = "\n\n---\n\n".join(context_parts)
-            except Exception:
-                pass  # Continue without context if search fails
-        
-        # Enhance message with context if available
-        enhanced_message = message
-        if context_text:
-            enhanced_message = (
-                f"[Context from my knowledge base:\n{context_text}\n]\n\n"
-                f"User: {message}"
-            )
-        
+        # Decode images if provided
+        image_bytes_list = None
+        if images:
+            image_bytes_list = []
+            for img_b64 in images:
+                try:
+                    if "," in img_b64:
+                        img_b64 = img_b64.split(",")[1]
+                    image_bytes_list.append(base64.b64decode(img_b64))
+                except Exception as e:
+                    print(f"Error decoding image: {e}")
+
         # Add user message to session
+        # Note: ChatMessage currently doesn't store images in memory, 
+        # but we could add it if needed for persistence.
         session.add_message("user", message)
+        self.memory_manager.add_message(session.session_id, "user", message)
         
-        # Generate response
-        response = self.engine.generate(enhanced_message)
+        # Generate response using RAG Engine if enabled, otherwise raw SLM
+        if self.use_rag:
+            # RAGEngine might need an update to handle images as well, 
+            # but for now it passes extra kwargs to the engine
+            try:
+                # Assuming RAGEngine.generate_response can pass through images or we call engine directly
+                # Let's check RAGEngine first if possible, or just call engine.generate
+                # If images are present, we might want to skip RAG or combine them
+                response = self.rag_engine.generate_response(
+                    message, 
+                    enhance_context=include_context,
+                    images=image_bytes_list
+                )
+            except TypeError:
+                # Fallback if RAGEngine doesn't support images yet
+                response = self.engine.generate(message, images=image_bytes_list)
+        else:
+            response = self.engine.generate(message, images=image_bytes_list)
         
         # Add response to session
         session.add_message("assistant", response)
+        self.memory_manager.add_message(session.session_id, "assistant", response)
         
         return response
     

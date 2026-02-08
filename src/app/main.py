@@ -8,7 +8,7 @@ representing JROCK.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import chat, ingest, agents, mcp, security, sync
+from .api import chat, ingest, agents, mcp, security, sync, analytics
 from .webhooks import router as webhooks_router
 
 app = FastAPI(
@@ -39,6 +39,7 @@ app.include_router(mcp.router)
 app.include_router(security.router)
 app.include_router(sync.router)
 app.include_router(webhooks_router)
+app.include_router(analytics.router)
 
 
 @app.on_event("startup")
@@ -46,6 +47,14 @@ async def startup_event():
     """Initialize services on startup."""
     from .core.logging_config import setup_logging
     setup_logging()
+    
+    from .memory.optimizer import run_optimization
+    import threading
+    
+    # Run memory optimizer in background thread to avoid blocking startup
+    # It has its own check for 3-month interval
+    thread = threading.Thread(target=run_optimization, daemon=True)
+    thread.start()
 
 
 @app.get("/")

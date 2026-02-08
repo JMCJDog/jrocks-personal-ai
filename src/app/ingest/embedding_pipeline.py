@@ -64,17 +64,15 @@ class EmbeddingPipeline:
         if self._collection is None:
             try:
                 import chromadb
-                from chromadb.config import Settings
                 
                 # Ensure persist directory exists
                 persist_path = Path(self.config.persist_directory)
                 persist_path.mkdir(parents=True, exist_ok=True)
                 
-                self._chroma_client = chromadb.Client(Settings(
-                    chroma_db_impl="duckdb+parquet",
-                    persist_directory=str(persist_path),
-                    anonymized_telemetry=False
-                ))
+                # Use modern PersistentClient API (ChromaDB 0.4+)
+                self._chroma_client = chromadb.PersistentClient(
+                    path=str(persist_path)
+                )
                 
                 self._collection = self._chroma_client.get_or_create_collection(
                     name=self.config.collection_name,

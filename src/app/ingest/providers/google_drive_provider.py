@@ -17,6 +17,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
 from ..document_processor import DocumentProcessor, ProcessedDocument
+from ..drive_metadata_db import DriveMetadataDB
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,7 @@ class GoogleDriveProvider:
         self.doc_processor = doc_processor or DocumentProcessor()
         self.creds = None
         self.service = None
+        self.db = DriveMetadataDB()
     
     def authenticate(self) -> None:
         """Authenticate with Google Drive using OAuth 2.0.
@@ -299,3 +301,81 @@ class GoogleDriveProvider:
         except Exception as e:
             logger.error(f"Failed to append to doc {file_id}: {e}")
             raise
+
+    def crawl_and_index(self) -> dict[str, int]:
+        """Recursively crawl all files and index metadata to SQLite.
+        
+        Returns:
+            Stats dict {"indexed": count, "errors": count}
+        """
+        if not self.service:
+            self.authenticate()
+            
+        logger.info("Starting Google Drive crawl...")
+        stats = {"indexed": 0, "errors": 0}
+        
+        try:
+            # 1. Fetch ALL files (pages)
+            # We fetch a simplified list first to build the tree
+            page_token = None
+            all_files = []
+            
+            while True:
+                response = self.service.files().list(
+                    q="trashed = false",
+                    spaces='drive',
+                    fields="nextPageToken, files(id, name, mimeType, parents, modifiedTime, description, starred, size)",
+                    pageSize=1000,
+                    pageToken=page_token
+                ).execute()
+                
+                files = response.get('files', [])
+                all_files.extend(files)
+                stats["indexed"] += len(files)
+                print(f"Fetched {len(all_files)} files so far...")
+                
+                page_token = response.get('nextPageToken', None)
+                if page_token is None:
+                    break
+            
+            # 2. Build Path Map
+            # id -> {name, parent_id}
+            file_map = {f['id']: f for f in all_files}
+            
+            # Helper to resolve path
+            def get_path(file_id: str) -> str:
+                path_parts = []
+                current_id = file_id
+                
+                # Prevent infinite loops with depth limit
+                depth = 0
+                while current_id in file_map and depth < 20:
+                    f = file_map[current_id]
+                    path_parts.insert(0, f['name'])
+                    
+                    parents = f.get('parents', [])
+                    if not parents:
+                        break
+                    current_id = parents[0] # Just take first parent
+                    depth += 1
+                    
+                return "/" + "/".join(path_parts)
+
+            # 3. Index to DB
+            logger.info("Saving metadata to database...")
+            for f in all_files:
+                try:
+                    # Enrich with computed path
+                    f['path'] = get_path(f['id'])
+                    self.db.upsert_file(f)
+                except Exception as e:
+                    logger.error(f"Error indexing file {f.get('name')}: {e}")
+                    stats["errors"] += 1
+            
+            logger.info(f"Drive crawl complete. Stats: {stats}")
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Crawl failed: {e}")
+            raise
+

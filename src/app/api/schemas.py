@@ -15,10 +15,11 @@ class ChatRequest(BaseModel):
     
     message: str = Field(..., description="The user's message", min_length=1)
     session_id: Optional[str] = Field(None, description="Session ID to continue a conversation")
+    images: Optional[list[str]] = Field(None, description="List of base64 encoded images for vision support")
     include_context: bool = Field(True, description="Whether to use RAG context")
     
     model_config = {"json_schema_extra": {"examples": [
-        {"message": "Hi! Tell me about yourself.", "include_context": True}
+        {"message": "What is in this image?", "images": ["base64_data_here"], "include_context": True}
     ]}}
 
 

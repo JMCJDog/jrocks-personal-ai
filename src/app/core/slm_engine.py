@@ -26,6 +26,7 @@ class Message:
     
     role: str  # "user", "assistant", or "system"
     content: str
+    images: Optional[list[bytes]] = None
 
 
 @dataclass
@@ -35,14 +36,15 @@ class ConversationContext:
     messages: list[Message] = field(default_factory=list)
     max_history: int = 20
     
-    def add_message(self, role: str, content: str) -> None:
+    def add_message(self, role: str, content: str, images: Optional[list[bytes]] = None) -> None:
         """Add a message to the conversation history.
         
         Args:
             role: The role of the message sender.
             content: The message content.
+            images: Optional list of image bytes.
         """
-        self.messages.append(Message(role=role, content=content))
+        self.messages.append(Message(role=role, content=content, images=images))
         
         # Trim history if too long (keep system messages)
         if len(self.messages) > self.max_history:
@@ -50,13 +52,19 @@ class ConversationContext:
             other_msgs = [m for m in self.messages if m.role != "system"]
             self.messages = system_msgs + other_msgs[-(self.max_history - len(system_msgs)):]
     
-    def get_messages_for_api(self) -> list[dict[str, str]]:
+    def get_messages_for_api(self) -> list[dict]:
         """Convert messages to the format expected by Ollama API.
         
         Returns:
             list: List of message dictionaries.
         """
-        return [{"role": m.role, "content": m.content} for m in self.messages]
+        api_messages = []
+        for m in self.messages:
+            msg = {"role": m.role, "content": m.content}
+            if m.images:
+                msg["images"] = m.images
+            api_messages.append(msg)
+        return api_messages
     
     def clear(self) -> None:
         """Clear conversation history except system messages."""
@@ -103,19 +111,21 @@ class SLMEngine:
     def generate(
         self,
         user_message: str,
+        images: Optional[list[bytes]] = None,
         stream: bool = False
     ) -> str:
         """Generate a response to the user message.
         
         Args:
             user_message: The user's input message.
+            images: Optional list of image bytes for multimodal models.
             stream: Whether to stream the response (not yet implemented).
         
         Returns:
             str: The model's response.
         """
         # Add user message to context
-        self.context.add_message("user", user_message)
+        self.context.add_message("user", user_message, images=images)
         
         try:
             response = self._client.chat(

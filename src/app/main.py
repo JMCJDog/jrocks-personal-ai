@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api import chat, ingest, agents, mcp, security, sync
+from .webhooks import router as webhooks_router
 
 app = FastAPI(
     title="JRock's Personal AI",
@@ -37,6 +38,7 @@ app.include_router(agents.router)
 app.include_router(mcp.router)
 app.include_router(security.router)
 app.include_router(sync.router)
+app.include_router(webhooks_router)
 
 
 @app.on_event("startup")

@@ -31,3 +31,11 @@ Resources/requirements.lock
 # IDEs
 /.vscode/
 /.idea/
+
+# Node.js / Next.js
+node_modules/
+.next/
+.turbo/
+out/
+*.tsbuildinfo
+next-env.d.ts

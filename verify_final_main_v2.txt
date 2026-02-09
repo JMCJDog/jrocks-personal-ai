@@ -1,0 +1,19 @@
+Testing API...
+
+Sending Query: 'What is my Date of Birth according to my health records?'
+Response received:
+{
+  "response": "My date of birth is October 21, 1985. I've got it written down in my medical records - just checked them myself! \ud83d\udcdd",
+  "session_id": "64a01393-dfb2-4af6-a640-b8204802fa28",
+  "timestamp": "2026-02-08T22:17:41.829785",
+  "metadata": {}
+}
+
+Sending Query: 'What is 'The Book'?'
+Response received:
+{
+  "response": "\"The Book\". It's a term that's been floating around in my mind for years, but I never really knew what it meant until recently. You see, when I was younger, I had this idea about creating an online library database - the largest one in the world, to be exact. But then I read \"The Google Story\" and found out that Google was already working on something similar.\n\nIt got me thinking...what if everything is just a bunch of random data? What if there's no true meaning or purpose behind it all? That's when I started to question my own ideas, my own perspectives. And that's when \"The Book\" started to take shape in my mind.\n\nFor me, \"The Book\" represents the idea that our lives are just a collection of random events and experiences. But what if we can look beyond those individual pieces and find meaning in them? What if we can use those experiences to gain a new perspective on life?\n\nIt's like I said in one of my favorite quotes: \"the judgment of the situation.\" It's about being able to analyze our lives, our experiences, and make sense out of them. But it's also about recognizing that there's more to life than just what we can see and touch.\n\nSo, \"The Book\" is not just a physical book or a collection of knowledge - it's a state of mind. It's the ability to look beyond the surface level and find meaning in the chaos. And I'm still working on figuring out what that means for me, but I'm excited to see where this journey takes me.",
+  "session_id": "4f27110a-b298-4ab4-9850-7480910a54e1",
+  "timestamp": "2026-02-08T22:17:50.285962",
+  "metadata": {}
+}

@@ -1,0 +1,19 @@
+Testing API...
+
+Sending Query: 'What is my Date of Birth according to my health records?'
+Response received:
+{
+  "response": "I don't have access to your personal health records or any information that's not publicly available. As a conversational AI, I'm designed to provide general knowledge and answer questions based on my training data, but I don't have the ability to access or retrieve sensitive personal information.\n\nIf you're looking for your date of birth or other medical information, I recommend checking with your healthcare provider or consulting your health records directly.",
+  "session_id": "90433040-c34a-47ed-8fc9-c3632b3fe9d3",
+  "timestamp": "2026-02-08T21:58:13.655107",
+  "metadata": {}
+}
+
+Sending Query: 'What is 'The Book'?'
+Response received:
+{
+  "response": "\"The Book\"! \ud83d\udcda That's a topic dear to my heart. For those who might not know, I'm referring to LangGraph, a fascinating project that aims to build a general-purpose knowledge graph framework for the web.\n\nLangGraph is an open-source initiative that seeks to create a decentralized, scalable, and maintainable platform for building and managing large-scale knowledge graphs. It's built on top of the LangChain ecosystem, which provides a set of libraries and tools for working with linked data and graph databases.\n\nThe idea behind LangGraph is to make it easy for developers to build and integrate knowledge graphs into their applications, while also providing a robust and secure infrastructure for storing and querying large amounts of structured data. It's like building a digital library that can be accessed by anyone, anywhere!\n\nAs someone who's passionate about open-source and AI, I'm excited to see LangGraph take shape and become a reality. It has the potential to democratize access to knowledge and make it more accessible to everyone. \ud83e\udd16",
+  "session_id": "652f9f61-8e86-43b3-84ac-9a4ccf948cd7",
+  "timestamp": "2026-02-08T21:58:18.629846",
+  "metadata": {}
+}

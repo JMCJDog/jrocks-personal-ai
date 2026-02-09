@@ -10,6 +10,7 @@ from datetime import datetime
 
 from ..core.slm_engine import SLMEngine, ModelConfig
 from ..core.persona import JROCKPersona, default_persona
+from ..core.model_registry import ModelTier
 from ..rag.engine import RAGEngine
 from ..memory.manager import MemoryManager
 
@@ -75,7 +76,7 @@ class Chatbot:
     def __init__(
         self,
         persona: Optional[JROCKPersona] = None,
-        model_name: str = "llama3.2",
+        model_name: str | ModelTier = ModelTier.BALANCED,
         use_rag: bool = True,
 
     ) -> None:
@@ -94,7 +95,7 @@ class Chatbot:
         config = ModelConfig(
             model_name=model_name,
             system_prompt=self.persona.generate_system_prompt(),
-            temperature=0.7,
+            temperature=0.3,
         )
         self.engine = SLMEngine(config)
         
@@ -241,7 +242,7 @@ class Chatbot:
                 print(f"Agent orchestration failed: {e}")
                 # Fallback to normal generation
         
-        # Generate response using RAG Engine if enabled, otherwise raw SLM
+            # Generate response using RAG Engine if enabled, otherwise raw SLM
         if self.use_rag:
             # RAGEngine might need an update to handle images as well, 
             # but for now it passes extra kwargs to the engine
@@ -255,7 +256,8 @@ class Chatbot:
                     images=image_bytes_list,
                     context=context
                 )
-            except TypeError:
+            except Exception as e:
+                print(f"RAG call failed with error: {e}")
                 # Fallback if RAGEngine doesn't support images yet
                 response = self.engine.generate(message, images=image_bytes_list, context=context)
         else:
@@ -283,7 +285,7 @@ class Chatbot:
 
 
 # Convenience function for quick chat
-def quick_chat(message: str, model: str = "llama3.2") -> str:
+def quick_chat(message: str, model: str = "balanced") -> str:
     """Quick one-off chat without session management.
     
     Args:

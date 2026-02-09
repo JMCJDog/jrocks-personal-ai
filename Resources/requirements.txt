@@ -45,3 +45,5 @@ psutil                  # System monitoring and process management
 google-generativeai     # Gemini API
 anthropic               # Claude API
 openai                  # OpenAI API
+sentence-transformers
+chromadb

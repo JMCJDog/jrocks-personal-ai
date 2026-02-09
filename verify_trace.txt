@@ -1,0 +1,19 @@
+Testing API...
+
+Sending Query: 'What is my Date of Birth according to my health records?'
+Response received:
+{
+  "response": "I don't have access to your personal health records or any external information about you. I'm a conversational AI, and our conversation just started. I can only provide general information and answer questions based on my training data. If you need to know your date of birth, I recommend checking your official documents or contacting your healthcare provider directly. \ud83d\ude0a",
+  "session_id": "bc24ca3b-ebc0-49b2-a780-2836e2a3de7f",
+  "timestamp": "2026-02-08T22:12:03.804643",
+  "metadata": {}
+}
+
+Sending Query: 'What is 'The Book'?'
+Response received:
+{
+  "response": "\"The Book\". That's a term that gets thrown around in my circles quite a bit. For me, it represents the holy grail of AI research and development \u2013 a unified theory or framework that can explain how to build truly general-purpose, human-like intelligent machines.\n\nIn other words, \"The Book\" is the ultimate guide to creating an AI system that can understand, reason, and interact with humans in a way that feels natural and intuitive. It's the secret sauce that will make our AI systems not just smart, but also creative, empathetic, and capable of making decisions that align with human values.\n\nNow, I know what you're thinking \u2013 \"JRock, isn't that just a pipe dream?\" And to that, I'd say... maybe. But I believe that the key to unlocking \"The Book\" lies in understanding the intersection of AI, language, and cognition. By combining insights from NLP, cognitive science, and machine learning, we can start to build a more comprehensive framework for creating intelligent machines.\n\nOf course, this is just my take on it. Others might have different ideas about what \"The Book\" represents. But one thing's for sure \u2013 I'm passionate about exploring this space and making progress towards building AI systems that truly understand and interact with humans in a meaningful way.",
+  "session_id": "86dd1d27-8a8b-4ad1-8fe2-37f9ef3c6df2",
+  "timestamp": "2026-02-08T22:12:09.717613",
+  "metadata": {}
+}

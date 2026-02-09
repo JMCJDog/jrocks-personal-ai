@@ -18,9 +18,12 @@ class RAGEngine:
     6. LLM Generation
     """
     
-    def __init__(self, model_config: Optional[ModelConfig] = None) -> None:
+    def __init__(self, model_config: Optional[ModelConfig] = None, slm_engine: Optional[SLMEngine] = None) -> None:
         """Initialize the RAG engine."""
-        self.slm_engine = SLMEngine(model_config)
+        if slm_engine:
+            self.slm_engine = slm_engine
+        else:
+            self.slm_engine = SLMEngine(model_config)
         self.embedding_pipeline = get_pipeline()
         
         # Advanced RAG components
@@ -40,7 +43,8 @@ class RAGEngine:
         user_query: str, 
         system_prompt: Optional[str] = None, 
         enhance_context: bool = True,
-        images: Optional[list[bytes]] = None
+        images: Optional[list[bytes]] = None,
+        context: Optional[dict] = None
     ) -> str:
         """Generate a response using RAG."""
         context_text = ""
@@ -58,7 +62,6 @@ class RAGEngine:
                 # 2. Retrieval (Multi-query)
                 for q in queries:
                     # Search Documents & Memories
-                    # We increase n_results to get a good candidate pool for re-ranking
                     results = self.embedding_pipeline.search(q, n_results=10)
                     for res in results:
                         # Deduplicate by ID if available, else content
@@ -109,9 +112,10 @@ class RAGEngine:
         
         if context_text:
             final_prompt = (
-                f"Use the following context to answer the user's question. "
-                f"If the context doesn't help, answer from your own knowledge.\n\n"
-                f"--- CONTEXT ---\n{context_text}\n----------------\n\n"
+                f"The following context contains retrieved MEMORIES from your own life and writings. "
+                f"Use these details to answer the User's question as Jared (First Person).\n"
+                f"Do not refer to the context as 'context' or 'documents'. Treat it as your own knowledge.\n\n"
+                f"--- YOUR MEMORIES ---\n{context_text}\n----------------\n\n"
                 f"User Question: {user_query}"
             )
             

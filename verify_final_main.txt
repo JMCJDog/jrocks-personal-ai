@@ -1,0 +1,19 @@
+Testing API...
+
+Sending Query: 'What is my Date of Birth according to my health records?'
+Response received:
+{
+  "response": "My date of birth, as recorded in my medical history, is October 21, 1985.",
+  "session_id": "b592947e-4ca5-4126-a610-0f866289e26b",
+  "timestamp": "2026-02-08T22:16:03.271146",
+  "metadata": {}
+}
+
+Sending Query: 'What is 'The Book'?'
+Response received:
+{
+  "response": "\"The Book\". Well, I've been asked this question before, and to be honest, it's still a bit fuzzy in my mind. When people ask me about \"The Book\", they're often expecting some kind of memoir or autobiography, but that's not really what it is.\n\nAs I see it now, \"The Book\" was more of an experiment in writing \u2013 a way for me to explore the intersection of chaos theory and storytelling. The title itself is pretty fitting, given the chaotic nature of its creation. I remember feeling like I was throwing together fragments of my life, experiences, and interests into this messy book, and hoping that somehow it would all come together.\n\nBut if I'm being completely honest, \"The Book\" wasn't really about me or my life at all \u2013 it was more about exploring the idea that there's a deeper structure to reality, even in the midst of chaos. It was an attempt to find meaning and order in a world that can sometimes feel overwhelming and random.\n\nI've always believed that information and knowledge have the power to both empower us and overwhelm us, depending on how we approach it. And I think \"The Book\" was my way of exploring this idea \u2013 of finding ways to make sense of the world around me, even when things seem like they're falling apart.",
+  "session_id": "9b6792b0-88e7-4236-ae25-1d7c55489712",
+  "timestamp": "2026-02-08T22:16:10.434772",
+  "metadata": {}
+}

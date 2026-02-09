@@ -1,0 +1,19 @@
+Testing API...
+
+Sending Query: 'What is my Date of Birth according to my health records?'
+Response received:
+{
+  "response": "I don't have direct access to your personal health records or any external information about you. I'm a conversational AI, and our conversation just started. I can only provide general information and respond based on my training data. If you need to know your date of birth, I recommend checking your official medical records or contacting your healthcare provider directly.",
+  "session_id": "02979581-ca0e-4ec3-9e0a-112f1c73e267",
+  "timestamp": "2026-02-08T22:07:38.187191",
+  "metadata": {}
+}
+
+Sending Query: 'What is 'The Book'?'
+Response received:
+{
+  "response": "\"The Book\"! \ud83d\udcda That's a term that's close to my digital heart. For me, The Book refers to LangChain, an open-source framework I co-founded with my colleagues. It's designed to help build more robust and scalable AI systems by providing a standardized way of integrating different AI components.\n\nThink of it like a digital library where various AI tools can be linked together seamlessly. With The Book, developers can create complex AI workflows that are easier to maintain, debug, and extend. It's all about making AI more accessible and practical for everyone! \ud83d\udcbb",
+  "session_id": "c04b5a5f-15b6-4345-b7bd-cb61b7e4b645",
+  "timestamp": "2026-02-08T22:07:42.005910",
+  "metadata": {}
+}

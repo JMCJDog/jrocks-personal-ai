@@ -139,25 +139,23 @@ class SLMEngine:
             # Construct system prompt from context if needed
             system_prompt = next((m.content for m in self.context.messages if m.role == "system"), None)
             
-            # For providers that don't support full chat history in API (like our simple wrapper),
-            # we might need to concatenate history.
-            # But for now, let's assume we just send the last message + system prompt for simplicity,
-            # OR we should update ModelProvider to accept messages list.
-            # Given the interface in ModelProvider.generate(prompt, ...), let's concatenate history for now.
-            
-            full_prompt = ""
+            # Prepare structured messages for the provider
+            # This allows providers (like Ollama) to see distinct turns instead of a flat string
+            api_messages = []
             for msg in self.context.messages:
+                # Skip system messages here as they are often handled separately by providers
+                # (ModelRouter logic usually prepends system_prompt if passed)
                 if msg.role != "system":
-                    full_prompt += f"{msg.role}: {msg.content}\n"
+                    m_dict = {"role": msg.role, "content": msg.content}
+                    if msg.images:
+                        m_dict["images"] = msg.images
+                    api_messages.append(m_dict)
             
-            # If history is empty (just user message), full_prompt is just the message
-            if not full_prompt:
-                full_prompt = user_message
-
             response_text = provider.generate(
-                prompt=full_prompt,
+                prompt=user_message,
                 system_prompt=system_prompt,
                 images=images,
+                messages=api_messages,
                 max_tokens=self.config.max_tokens,
                 temperature=self.config.temperature
             )

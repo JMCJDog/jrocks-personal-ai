@@ -1,0 +1,19 @@
+Testing API...
+
+Sending Query: 'What is my Date of Birth according to my health records?'
+Response received:
+{
+  "response": "My date of birth is October 21, 1985. I've got it written down in my medical records from 2021-2025, and I can recall it easily - October 21st, 1985.",
+  "session_id": "a4894143-927d-4f4b-b2e7-11ec0392ce59",
+  "timestamp": "2026-02-08T22:20:56.371605",
+  "metadata": {}
+}
+
+Sending Query: 'What is 'The Book'?'
+Response received:
+{
+  "response": "\"The Book\". Well, I've had a lot of time to think about it since we started working on our project together. For me, \"The Book\" represents the culmination of all my experiences, passions, and interests. It's not just about my life story or personal anecdotes, but more about exploring the human condition, technology, and the world around us.\n\nAs I mentioned in my writing, I've always been fascinated by the concept of chaos theory and how seemingly random data can actually be ordered in a certain way. That's what \"The Book\" is all about \u2013 finding patterns and meaning in the noise.\n\nWhen people ask me if it's about my life, I tell them it's not just that. It's about looking beyond the surface level and exploring the deeper connections between things. It's about taking the good, the bad, and the ugly aspects of human experience and using them to build something new and meaningful.\n\nSo, in a way, \"The Book\" is a reflection of my own perspective \u2013 a fusion of my passions for technology, writing, and understanding the world.",
+  "session_id": "9698a794-8d56-4cfc-b934-b8b2a0a9486f",
+  "timestamp": "2026-02-08T22:21:02.888438",
+  "metadata": {}
+}

@@ -12,8 +12,16 @@ class ModelProvider(ABC):
     """Abstract base class for model providers."""
     
     @abstractmethod
-    def generate(self, prompt: str, system_prompt: Optional[str] = None, images: Optional[List[bytes]] = None, **kwargs) -> str:
-        """Generate a response from the model."""
+    def generate(self, prompt: str, system_prompt: Optional[str] = None, images: Optional[List[bytes]] = None, messages: Optional[List[Dict[str, Any]]] = None, **kwargs) -> str:
+        """Generate a response from the model.
+        
+        Args:
+             prompt: The latest user prompt (or full prompt if messages not used).
+             system_prompt: Optional system instructions.
+             images: Optional images associated with the prompt.
+             messages: Optional full conversation history [{'role': 'user', 'content': '...'}, ...].
+             **kwargs: Additional model parameters.
+        """
         pass
 
     @abstractmethod
@@ -30,20 +38,31 @@ class OllamaProvider(ModelProvider):
         import ollama
         self.client = ollama.Client()
 
-    def generate(self, prompt: str, system_prompt: Optional[str] = None, images: Optional[List[bytes]] = None, **kwargs) -> str:
-        messages = []
+    def generate(self, prompt: str, system_prompt: Optional[str] = None, images: Optional[List[bytes]] = None, messages: Optional[List[Dict[str, Any]]] = None, **kwargs) -> str:
+        api_messages = []
         if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
+            api_messages.append({"role": "system", "content": system_prompt})
         
-        user_msg = {"role": "user", "content": prompt}
-        if images:
-             user_msg["images"] = images
-        messages.append(user_msg)
+        # Use full history if provided, otherwise construct from prompt
+        if messages:
+            # Append history (excluding system if we just added it)
+            for m in messages:
+                if m.get("role") != "system":
+                    api_messages.append(m)
+        else:
+            # Legacy/Fallback behavior
+            user_msg = {"role": "user", "content": prompt}
+            if images:
+                 user_msg["images"] = images
+            api_messages.append(user_msg)
+        
+        # Ensure the *latest* prompt is in there if it wasn't in messages
+        # (SLMEngine typically adds it to context first, so it would be in messages)
 
         try:
             response = self.client.chat(
                 model=self.model_name,
-                messages=messages,
+                messages=api_messages,
                 options={
                     "temperature": kwargs.get("temperature", 0.7),
                     "num_predict": kwargs.get("max_tokens", 2048),
@@ -75,7 +94,7 @@ class GeminiProvider(ModelProvider):
         else:
             self.client = None
 
-    def generate(self, prompt: str, system_prompt: Optional[str] = None, images: Optional[List[bytes]] = None, **kwargs) -> str:
+    def generate(self, prompt: str, system_prompt: Optional[str] = None, images: Optional[List[bytes]] = None, messages: Optional[List[Dict[str, Any]]] = None, **kwargs) -> str:
         if not self.client:
             raise ValueError("Google API Key not configured.")
 
@@ -120,7 +139,7 @@ class AnthropicProvider(ModelProvider):
         else:
             self.client = None
 
-    def generate(self, prompt: str, system_prompt: Optional[str] = None, images: Optional[List[bytes]] = None, **kwargs) -> str:
+    def generate(self, prompt: str, system_prompt: Optional[str] = None, images: Optional[List[bytes]] = None, messages: Optional[List[Dict[str, Any]]] = None, **kwargs) -> str:
         if not self.client:
             raise ValueError("Anthropic API Key not configured.")
         
@@ -171,7 +190,7 @@ class OpenAIProvider(ModelProvider):
         else:
             self.client = None
 
-    def generate(self, prompt: str, system_prompt: Optional[str] = None, images: Optional[List[bytes]] = None, **kwargs) -> str:
+    def generate(self, prompt: str, system_prompt: Optional[str] = None, images: Optional[List[bytes]] = None, messages: Optional[List[Dict[str, Any]]] = None, **kwargs) -> str:
         if not self.client:
             raise ValueError("OpenAI API Key not configured.")
         

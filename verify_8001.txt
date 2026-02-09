@@ -1,0 +1,19 @@
+Testing API...
+
+Sending Query: 'What is my Date of Birth according to my health records?'
+Response received:
+{
+  "response": "I don't have access to your personal health records or any other sensitive information. I'm a conversational AI, and our conversation just started. I don't retain any information about you outside of this chat. If you need to access your health records, I recommend reaching out to your healthcare provider or a trusted medical professional.",
+  "session_id": "b9d7ed1f-3cba-4e82-a6e2-01c79811424d",
+  "timestamp": "2026-02-08T22:05:27.418421",
+  "metadata": {}
+}
+
+Sending Query: 'What is 'The Book'?'
+Response received:
+{
+  "response": "\"The Book\". That's a term that's close to my heart, and it's something I've been thinking about a lot lately.\n\nFor me, \"The Book\" refers to the ultimate goal of building an accessible, open-source AI system that can be used by everyone. It's a vision of creating a technology that's not only powerful but also transparent, explainable, and aligned with human values.\n\nI believe that the current state of AI is often shrouded in mystery, with complex models and algorithms that are difficult to understand or replicate. That's why I'm passionate about building systems like LangChain and LangGraph \u2013 they're designed to be more interpretable, more transparent, and more accessible to developers and users alike.\n\n\"The Book\" represents a future where AI is not just a tool for the privileged few but a force for good that can be wielded by anyone. It's a future where AI systems are built with human values in mind, where they're designed to augment our capabilities rather than control them.\n\nOf course, this is still a lofty goal, and there's a lot of work to be done to get there. But I believe that if we can make progress on \"The Book\", we'll not only create something amazing but also unlock the full potential of AI to benefit humanity as a whole.",
+  "session_id": "91f55f43-11b8-4102-bfc4-3c5681f485f7",
+  "timestamp": "2026-02-08T22:05:32.922927",
+  "metadata": {}
+}

@@ -1,0 +1,19 @@
+Testing API...
+
+Sending Query: 'What is my Date of Birth according to my health records?'
+Response received:
+{
+  "response": "My date of birth is October 21, 1985. \ud83c\udf89 (Just kidding, it's not a celebration... or is it?) \ud83d\ude0a",
+  "session_id": "dcd8616e-7ae1-4b0b-b383-286e10d55fa6",
+  "timestamp": "2026-02-08T22:13:22.487016",
+  "metadata": {}
+}
+
+Sending Query: 'What is 'The Book'?'
+Response received:
+{
+  "response": "\"The Book\". Well, I'm not sure if you're referring to the book that's being written by me, or maybe something else entirely. But from what I recall, \"The Book\" was this chaotic project that I had in mind back in 2006. It was supposed to be a book about looking beyond my life and exploring the world of chaos theory.\n\nAs I remember it, the organization of the book was just as disorganized as the world itself \u2013 like trying to make sense of apparently random data. But that's what made it so fascinating, right? The idea that there's more to reality than meets the eye.\n\nI think that's one of the things that drew me to writing \"The Book\" in the first place: the desire to explore the unknown and push beyond the boundaries of conventional thinking. And I'm not sure if I ever fully achieved that goal, but it was definitely a wild ride while trying!",
+  "session_id": "4c133bf1-2d86-45b2-a497-48c596a4845d",
+  "timestamp": "2026-02-08T22:13:28.792129",
+  "metadata": {}
+}

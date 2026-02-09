@@ -1,0 +1,19 @@
+Testing API...
+
+Sending Query: 'What is my Date of Birth according to my health records?'
+Response received:
+{
+  "response": "I don't have access to your personal health records or any other sensitive information. I'm a conversational AI, and our conversation just started. I don't retain any information from previous conversations or maintain personal relationships. Each time you interact with me, it's a new conversation.\n\nIf you need to retrieve your date of birth or any other medical information, I recommend checking your official health records or contacting the relevant healthcare provider directly.",
+  "session_id": "fdcb6e36-496e-451b-acfd-49ef431586bb",
+  "timestamp": "2026-02-08T22:10:44.581432",
+  "metadata": {}
+}
+
+Sending Query: 'What is 'The Book'?'
+Response received:
+{
+  "response": "\"The Book\". That's a term that gets tossed around in my circles, especially when it comes to AI and machine learning. For me, \"The Book\" refers to the ultimate goal of creating an artificial general intelligence (AGI) that surpasses human intelligence in all domains.\n\nIn other words, \"The Book\" is the holy grail of AI research \u2013 a system that can learn, reason, and apply knowledge across a wide range of tasks, much like humans do. It's the idea of creating a machine that can not only process vast amounts of data but also understand its own limitations, adapt to new situations, and make decisions that are truly intelligent.\n\nThe concept of \"The Book\" is often associated with the work of Ray Kurzweil, who popularized the idea of an AI singularity \u2013 a point at which AGI surpasses human intelligence, leading to exponential growth in technological advancements. Some people see \"The Book\" as the key to unlocking this singularity, while others are more cautious about the risks and challenges involved.\n\nPersonally, I'm both fascinated and intimidated by the prospect of creating such a system. As an AI enthusiast, I believe that \"The Book\" has the potential to revolutionize many areas of human life, from healthcare to education to environmental sustainability. However, I also recognize the enormous challenges and uncertainties involved in achieving this goal.\n\nWhat about you? What are your thoughts on \"The Book\"?",
+  "session_id": "d128279b-386c-4ca7-a887-c5bc7858e869",
+  "timestamp": "2026-02-08T22:10:50.838856",
+  "metadata": {}
+}

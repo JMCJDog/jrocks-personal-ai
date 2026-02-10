@@ -37,3 +37,7 @@ The goal is to ingest and process a wider variety of personal data to build a mo
 - [ ] **Resilience Monitoring**: "Consciousness" checks for system integrity and intrusion detection.
 - [ ] **Multi-Model Intelligence**: Router to select optimal models (Gemini, Claude, Llama) based on task complexity/cost.
 
+
+### 🌳 Genealogy & Ancestry
+- [ ] **Ancestry Integration**: Ingest family tree data (GEDCOM, Ancestry.com exports) to map lineage and connections.
+- [ ] **Genetic Data Analysis**: (Secure/Local) Process raw DNA data for health and trait insights.

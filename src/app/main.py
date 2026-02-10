@@ -40,6 +40,8 @@ app.include_router(security.router)
 app.include_router(sync.router)
 app.include_router(webhooks_router)
 app.include_router(analytics.router)
+from .webhooks.feedback import router as feedback_router
+app.include_router(feedback_router)
 
 
 @app.on_event("startup")

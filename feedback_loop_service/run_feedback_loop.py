@@ -9,9 +9,21 @@ import os
 import subprocess
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from datetime import datetime
 
 # Add src to path
+# run_feedback_loop.py is in Projects/jrocks-personal-ai/feedback_loop_service
+# src is in Projects/jrocks-personal-ai/src
+# so we need to go up one level to project root, then down to src?
+# actually, no.
+# script: .../feedback_loop_service/run_feedback_loop.py
+# parent: .../feedback_loop_service
+# parent.parent: .../Projects/jrocks-personal-ai
+# src: .../Projects/jrocks-personal-ai/src
 sys.path.append(str(Path(__file__).resolve().parent.parent / "src"))
+# Verify preventing duplicates
+if str(Path(__file__).resolve().parent.parent / "src") not in sys.path:
+    sys.path.append(str(Path(__file__).resolve().parent.parent / "src"))
 
 from app.ingest.providers.feedback_watcher import FeedbackWatcher
 from app.agents.agent_registry import get_registry
@@ -64,9 +76,33 @@ def ensure_ollama_running():
         logger.error(f"Failed to check/start Ollama: {e}")
         return False
 
+def send_feedback_event(event_type: str, command: str, result: str = None, agent_name: str = None):
+    """Send feedback event to the main API."""
+    try:
+        import httpx
+        payload = {
+            "event_type": event_type,
+            "command": command,
+            "result": result,
+            "agent_name": agent_name,
+            "timestamp": datetime.now().isoformat()
+        }
+        # Fire and forget-ish
+        try:
+            httpx.post("http://localhost:8000/api/webhooks/feedback/", json=payload, timeout=2.0)
+        except (httpx.ConnectError, httpx.TimeoutException) as e:
+            logger.warning(f"Webhook failed (backend likely down): {e}")
+        except Exception as e:
+            logger.warning(f"Failed to send feedback webhook: {e}")
+    except ImportError:
+        logger.warning("httpx not installed, skipping webhook")
+
 def execute_command(command: str) -> str:
     """Execute a command found in the doc."""
     logger.info(f"Received command: {command}")
+    
+    # Notify UI: Command Detected
+    send_feedback_event("command.detected", command)
     
     # WATCHDOG: Ensure brain is alive
     ensure_ollama_running()
@@ -90,22 +126,31 @@ def execute_command(command: str) -> str:
             agent = registry.get_best_for_capability(AgentCapability.CODE_GENERATION)
             
         if not agent:
-            return "Error: No capable agent found to execute code changes."
+            msg = "Error: No capable agent found to execute code changes."
+            send_feedback_event("execution.failed", command, result=msg, agent_name="System")
+            return msg
             
         logger.info(f"Dispatching to agent: {agent.name}")
+        send_feedback_event("execution.started", command, agent_name=agent.name)
         
         # Execute
         # Agent uses process(message) -> AgentResponse
         response = agent.process(command)
         
         if response.success:
-            return f"Executed by {agent.name}:\n{response.content}"
+            result = f"Executed by {agent.name}:\n{response.content}"
+            send_feedback_event("execution.completed", command, result=response.content, agent_name=agent.name)
+            return result
         else:
-            return f"Agent {agent.name} failed:\n{response.content}"
+            result = f"Agent {agent.name} failed:\n{response.content}"
+            send_feedback_event("execution.failed", command, result=response.content, agent_name=agent.name)
+            return result
         
     except Exception as e:
         logger.error(f"Execution failed: {e}")
-        return f"Error executing command: {str(e)}"
+        msg = f"Error executing command: {str(e)}"
+        send_feedback_event("execution.failed", command, result=msg, agent_name="System")
+        return msg
 
 import json
 import time

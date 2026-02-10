@@ -15,6 +15,7 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
+import time
 
 from ..document_processor import DocumentProcessor, ProcessedDocument
 from ..drive_metadata_db import DriveMetadataDB
@@ -107,6 +108,29 @@ class GoogleDriveProvider:
         self.service = build('drive', 'v3', credentials=self.creds)
         logger.info("Successfully authenticated with Google Drive")
 
+    def _retry_operation(self, func, *args, **kwargs):
+        """Retry an operation with exponential backoff."""
+        max_retries = 5
+        base_delay = 1
+        
+        for attempt in range(max_retries):
+            try:
+                return func(*args, **kwargs)
+            except (ConnectionError, OSError) as e:
+                # Handle connection reset errors (WinError 10054, 10053)
+                if attempt == max_retries - 1:
+                    logger.error(f"Operation failed after {max_retries} attempts: {e}")
+                    raise
+                
+                delay = base_delay * (2 ** attempt)
+                logger.warning(f"Operation failed (attempt {attempt+1}/{max_retries}): {e}. Retrying in {delay}s...")
+                time.sleep(delay)
+            except Exception as e:
+                # Re-raise other exceptions immediately
+                raise e
+
+
+
     def search_files(
         self, 
         query: str = "trashed = false", 
@@ -121,16 +145,18 @@ class GoogleDriveProvider:
         Returns:
             List of file metadata objects.
         """
-        if not self.service:
-            self.authenticate()
-            
-        results = self.service.files().list(
-            q=query,
-            pageSize=limit,
-            fields="nextPageToken, files(id, name, mimeType, modifiedTime, description)"
-        ).execute()
-        
-        return results.get('files', [])
+        def _search():
+            if not self.service:
+                self.authenticate()
+                
+            results = self.service.files().list(
+                q=query,
+                pageSize=limit,
+                fields="nextPageToken, files(id, name, mimeType, modifiedTime, description)"
+            ).execute()
+            return results.get('files', [])
+
+        return self._retry_operation(_search)
 
     def download_file(self, file_id: str, mime_type: str) -> str:
         """Download or export a file's content.
@@ -142,12 +168,10 @@ class GoogleDriveProvider:
         Returns:
             Extracted text content.
         """
-        if not self.service:
-            self.authenticate()
-            
-        content = ""
-        
-        try:
+        def _download():
+            if not self.service:
+                self.authenticate()
+                
             # Handle Google Docs formats (Export)
             if mime_type in self.MIME_TYPES:
                 export_mime = self.MIME_TYPES[mime_type]
@@ -169,23 +193,17 @@ class GoogleDriveProvider:
             raw_content = fh.read()
             
             # Convert to string for text types
-            # For PDFs, this would need PDF processing logic integrated
-            # Here for text/plain exports:
             if mime_type == 'application/vnd.google-apps.document':
                 # Text usually comes with BOM
-                content = raw_content.decode('utf-8-sig')
+                return raw_content.decode('utf-8-sig')
             else:
-                # Fallback for others - might need specialized handlers
+                # Fallback for others
                 try:
-                    content = raw_content.decode('utf-8')
+                    return raw_content.decode('utf-8')
                 except:
-                    content = f"[Binary Content: {len(raw_content)} bytes]"
-                    
-        except Exception as e:
-            logger.error(f"Error downloading file {file_id}: {e}")
-            raise
-            
-        return content
+                    return f"[Binary Content: {len(raw_content)} bytes]"
+
+        return self._retry_operation(_download)
 
     def process_file(self, file_meta: dict[str, Any]) -> Optional[ProcessedDocument]:
         """Process a Drive file into a ProcessedDocument.

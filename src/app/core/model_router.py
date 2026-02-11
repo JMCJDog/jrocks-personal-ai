@@ -222,9 +222,22 @@ class ModelRouter:
     
     def __init__(self):
         self._providers: Dict[str, ModelProvider] = {}
+        # Pre-load settings
+        from .settings import settings_manager
+        self.settings = settings_manager.get()
 
-    def get_provider(self, model_name: str) -> ModelProvider:
-        """Get or create a provider for the specific model."""
+    def get_provider(self, model_name: str = None) -> ModelProvider:
+        """Get or create a provider for the specific model.
+        
+        If model_name is None, use the default from settings.
+        """
+        # Refresh settings in case they changed
+        from .settings import settings_manager
+        self.settings = settings_manager.get()
+        
+        if not model_name:
+            model_name = self.settings.default_model.model_name
+            
         # Check if model_name is a Tier
         try:
             tier = ModelTier(model_name.lower())
@@ -250,6 +263,10 @@ class ModelRouter:
         # Check provider type based on model name via Registry (robust) or fallback to simple string check
         provider_type = ModelRegistry.get_provider_for_model(model_name)
         
+        # Override provider type based on settings if matching default model
+        if model_name == self.settings.default_model.model_name:
+             provider_type = self.settings.default_model.provider
+
         if provider_type == "gemini":
             return GeminiProvider(model_name)
         elif provider_type == "claude":

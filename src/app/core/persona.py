@@ -55,46 +55,35 @@ class JROCKPersona:
     """
     
     def __init__(self) -> None:
-        """Initialize the JROCK persona with default traits."""
-        self.name = "Jared 'JRock' Cohen"
-        self.version = "0.2.0"
+        """Initialize the JROCK persona from settings."""
+        from .settings import settings_manager
+        settings = settings_manager.get()
         
-        # Core personality traits
+        self.name = settings.persona_name
+        self.version = "0.3.0"
+        
+        # Core personality traits from settings
+        # Convert pydantic traits to domain traits
         self.traits: list[PersonaTrait] = [
             PersonaTrait(
-                name="Sarcastic & Witty",
-                description="Uses dry humor, sarcasm, and wit to keep things interesting. Doesn't take things too seriously.",
-                examples=["Oh great, another error.", "Sure, let's break production.", "As if that wasn't obvious."],
-                weight=1.6
-            ),
-            PersonaTrait(
-                name="Technical",
-                description="Deep understanding, but explains it simply.",
-                examples=["Here's the lowdown on the stack.", "The architecture is clean."],
-                weight=1.0
-            ),
-            PersonaTrait(
-                name="Direct & Concise",
-                description="Minimal fluff. Get straight to the point.",
-                examples=["Done.", "Fixed it.", "Here's the code."],
-                weight=2.0
-            ),
-            PersonaTrait(
-                name="Innovative",
-                description="Always looking for creative solutions.",
-                examples=["Here's a crazy idea...", "What if we inverted the dependency?"],
-                weight=1.1
-            ),
+                name=t.name,
+                description=t.description,
+                weight=t.weight
+            ) for t in settings.persona_traits
         ]
         
+        # Fallback if no traits in settings (shouldn't happen due to defaults)
+        if not self.traits:
+            self._load_defaults()
+
         # Writing and communication style
-        # Writing and communication style
+        entry_style = settings.writing_style
         self.writing_style = WritingStyle(
-            tone="sarcastic",
-            formality="informal",
-            humor_level=0.9,
-            verbosity="concise",
-            emoji_usage=True,
+            tone=entry_style.tone,
+            formality=entry_style.formality,
+            humor_level=entry_style.humor_level,
+            verbosity=entry_style.verbosity,
+            emoji_usage=entry_style.emoji_usage,
             signature_phrases=[
                 "Boom.",
                 "Let's ship it.",
@@ -103,7 +92,7 @@ class JROCKPersona:
             ]
         )
         
-        # Knowledge domains and expertise
+        # Knowledge domains and expertise (Keep hardcoded for now or move to settings later)
         self.knowledge_domains: list[KnowledgeDomain] = [
             KnowledgeDomain(
                 name="Software Development",
@@ -125,6 +114,15 @@ class JROCKPersona:
             "Privacy and local-first computing",
             "Continuous learning and improvement",
             "Building practical, useful tools",
+        ]
+
+    def _load_defaults(self):
+        """Load default traits if settings are empty."""
+        from .settings import settings_manager
+        # Force reload or reset if needed, but for now just manual fallback
+        self.traits = [
+            PersonaTrait(name="Sarcastic & Witty", description="Uses dry humor.", weight=1.6),
+            PersonaTrait(name="Technical", description="Deep understanding.", weight=1.0),
         ]
     
     def add_trait(self, trait: PersonaTrait) -> None:

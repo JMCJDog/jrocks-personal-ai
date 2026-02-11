@@ -43,6 +43,27 @@ interface VoiceResponse {
     audio_url: string;
 }
 
+export interface AppSettings {
+    persona_name: string;
+    persona_traits: { name: string; description: string; weight: number }[];
+    writing_style: {
+        tone: string;
+        formality: string;
+        humor_level: number;
+        verbosity: string;
+        emoji_usage: boolean;
+    };
+    default_model: {
+        provider: string;
+        model_name: string;
+        temperature: number;
+        max_tokens: number;
+    };
+    openai_api_key?: string;
+    anthropic_api_key?: string;
+    google_api_key?: string;
+}
+
 class ApiClient {
     private async request<T>(
         endpoint: string,
@@ -156,6 +177,19 @@ class ApiClient {
 
         return response.json();
     }
+
+    // Start Settings
+    async getSettings(): Promise<AppSettings> {
+        return this.request<AppSettings>('/settings/');
+    }
+
+    async updateSettings(settings: AppSettings): Promise<AppSettings> {
+        return this.request<AppSettings>('/settings/', {
+            method: 'POST',
+            body: JSON.stringify(settings),
+        });
+    }
+    // End Settings
 
     // Analytics
     async getAnalyticsHealth(): Promise<any> {

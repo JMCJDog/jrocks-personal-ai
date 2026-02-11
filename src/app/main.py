@@ -8,7 +8,7 @@ representing JROCK.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import chat, ingest, agents, mcp, security, sync, analytics
+from .api import chat, ingest, agents, mcp, security, sync, analytics, settings
 from .webhooks import router as webhooks_router
 
 app = FastAPI(
@@ -40,6 +40,7 @@ app.include_router(security.router)
 app.include_router(sync.router)
 app.include_router(webhooks_router)
 app.include_router(analytics.router)
+app.include_router(settings.router, prefix="/api/settings")
 from .webhooks.feedback import router as feedback_router
 app.include_router(feedback_router)
 

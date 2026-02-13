@@ -82,42 +82,58 @@ class OllamaProvider(ModelProvider):
 
 
 class GeminiProvider(ModelProvider):
-    """Provider for Google Gemini models via Generative AI SDK."""
+    """Provider for Google Gemini models via the new google-genai SDK."""
     
-    def __init__(self, model_name: str = "gemini-1.5-flash"):
+    def __init__(self, model_name: str = "gemini-3-flash-preview"):
         self.model_name = model_name
-        import google.generativeai as genai
+        from google import genai
         api_key = os.getenv("GOOGLE_API_KEY")
         if api_key:
-            genai.configure(api_key=api_key)
-            self.client = genai.GenerativeModel(model_name)
+            self.client = genai.Client(api_key=api_key)
         else:
             self.client = None
 
     def generate(self, prompt: str, system_prompt: Optional[str] = None, images: Optional[List[bytes]] = None, messages: Optional[List[Dict[str, Any]]] = None, **kwargs) -> str:
         if not self.client:
             raise ValueError("Google API Key not configured.")
+        
+        from google.genai import types
+        
+        # Build contents list
+        contents = []
+        if messages:
+            for m in messages:
+                if m.get("role") == "system":
+                    continue  # Handled via system_instruction in config
+                role = "user" if m.get("role") == "user" else "model"
+                contents.append(types.Content(
+                    role=role,
+                    parts=[types.Part.from_text(text=m.get("content", ""))]
+                ))
+        else:
+            # Build from prompt
+            parts = [types.Part.from_text(text=prompt)]
+            if images:
+                import PIL.Image
+                import io
+                for img_bytes in images:
+                    parts.append(types.Part.from_image(image=PIL.Image.open(io.BytesIO(img_bytes))))
+            contents.append(types.Content(role="user", parts=parts))
 
-        # Gemini handles system prompts differently or via simple concatenation for now if not supported directly in this lib version
-        # But 'system_instruction' is supported in newer versions. We'll stick to basic prompt engineering if needed.
-        # Actually, let's try to use the system_instruction if initializing, but we initialized in __init__.
-        # For simplicity in this unified interface, we might prepend system prompt.
-        
-        full_content = []
+        # Build config
+        config = types.GenerateContentConfig(
+            temperature=kwargs.get("temperature", 0.7),
+            max_output_tokens=kwargs.get("max_tokens", 2048),
+        )
         if system_prompt:
-            # Note: Best practice is real system prompt, but for quick unified interface:
-            full_content.append(f"System: {system_prompt}\n")
-        
-        full_content.append(prompt)
-        
-        if images:
-            import PIL.Image
-            import io
-            for img_bytes in images:
-                full_content.append(PIL.Image.open(io.BytesIO(img_bytes)))
+            config.system_instruction = system_prompt
 
         try:
-            response = self.client.generate_content(full_content)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=contents,
+                config=config,
+            )
             return response.text
         except Exception as e:
             logger.error(f"Gemini generation failed: {e}")

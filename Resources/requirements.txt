@@ -42,7 +42,7 @@ numpy                   # Math operations (needed for AI)
 psutil                  # System monitoring and process management
 
 # --- Model Providers ---
-google-generativeai     # Gemini API
+google-genai             # Gemini API (new unified SDK)
 anthropic               # Claude API
 openai                  # OpenAI API
 sentence-transformers

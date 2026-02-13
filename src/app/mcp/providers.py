@@ -40,7 +40,7 @@ class ProviderConfig:
             defaults = {
                 ProviderType.CLAUDE: "claude-sonnet-4-20250514",
                 ProviderType.OPENAI: "gpt-4o",
-                ProviderType.GEMINI: "gemini-2.0-flash",
+                ProviderType.GEMINI: "gemini-3-flash-preview",
                 ProviderType.OLLAMA: "llama3.2",
             }
             self.model = defaults.get(self.provider_type, "")
@@ -354,9 +354,10 @@ class OpenAIProvider(LLMProvider):
 
 
 class GeminiProvider(LLMProvider):
-    """Google Gemini provider.
+    """Google Gemini provider via the new google-genai SDK.
     
-    Supports Gemini Pro, Ultra, and other Google models.
+    Supports Gemini 3 models with function calling,
+    structured output, and streaming.
     """
     
     def __init__(self, config: Optional[ProviderConfig] = None) -> None:
@@ -371,12 +372,47 @@ class GeminiProvider(LLMProvider):
         """Get or create the Gemini client."""
         if self._client is None:
             try:
-                import google.generativeai as genai
-                genai.configure(api_key=self.config.api_key)
-                self._client = genai.GenerativeModel(self.config.model)
+                from google import genai
+                self._client = genai.Client(api_key=self.config.api_key)
             except ImportError:
-                raise ImportError("google-generativeai required: pip install google-generativeai")
+                raise ImportError("google-genai required: pip install google-genai")
         return self._client
+    
+    def _build_contents(self, messages: list[ProviderMessage]) -> tuple[list, Optional[str]]:
+        """Convert messages to Gemini format, extracting system instruction."""
+        from google.genai import types
+        system_instruction = None
+        contents = []
+        for m in messages:
+            if m.role == "system":
+                system_instruction = m.content
+                continue
+            role = "user" if m.role == "user" else "model"
+            contents.append(types.Content(
+                role=role,
+                parts=[types.Part.from_text(text=m.content)]
+            ))
+        return contents, system_instruction
+    
+    def _build_config(self, system_instruction: Optional[str] = None,
+                      tools: Optional[list[dict]] = None, **kwargs):
+        """Build GenerateContentConfig with optional tools and structured output."""
+        from google.genai import types
+        config_kwargs = {
+            "max_output_tokens": self.config.max_tokens,
+            "temperature": self.config.temperature,
+        }
+        if system_instruction:
+            config_kwargs["system_instruction"] = system_instruction
+        if tools:
+            config_kwargs["tools"] = tools
+        # Support structured output via kwargs
+        if "response_schema" in kwargs:
+            config_kwargs["response_mime_type"] = "application/json"
+            config_kwargs["response_schema"] = kwargs.pop("response_schema")
+        if "response_mime_type" in kwargs:
+            config_kwargs["response_mime_type"] = kwargs.pop("response_mime_type")
+        return types.GenerateContentConfig(**config_kwargs)
     
     async def complete(
         self,
@@ -384,29 +420,48 @@ class GeminiProvider(LLMProvider):
         tools: Optional[list[dict]] = None,
         **kwargs
     ) -> ProviderResponse:
-        """Generate completion with Gemini."""
+        """Generate completion with Gemini.
+        
+        Supports function calling (pass tools) and structured output
+        (pass response_schema as a Pydantic model or dict in kwargs).
+        """
         client = self._get_client()
+        contents, system_instruction = self._build_contents(messages)
+        config = self._build_config(system_instruction, tools, **kwargs)
         
-        # Convert messages to Gemini format
-        contents = []
-        for m in messages:
-            if m.role == "system":
-                continue  # Gemini handles system differently
-            role = "user" if m.role == "user" else "model"
-            contents.append({"role": role, "parts": [m.content]})
-        
-        response = await client.generate_content_async(
-            contents,
-            generation_config={
-                "max_output_tokens": self.config.max_tokens,
-                "temperature": self.config.temperature,
-            },
+        response = await client.aio.models.generate_content(
+            model=self.config.model,
+            contents=contents,
+            config=config,
         )
         
+        # Extract function calls if present
+        tool_calls = []
+        content = response.text or ""
+        if response.candidates and response.candidates[0].content:
+            for part in response.candidates[0].content.parts:
+                if hasattr(part, 'function_call') and part.function_call:
+                    fc = part.function_call
+                    tool_calls.append({
+                        "name": fc.name,
+                        "arguments": dict(fc.args) if fc.args else {},
+                    })
+        
+        # Extract usage if available
+        usage = {}
+        if hasattr(response, 'usage_metadata') and response.usage_metadata:
+            um = response.usage_metadata
+            usage = {
+                "prompt_tokens": getattr(um, 'prompt_token_count', 0),
+                "completion_tokens": getattr(um, 'candidates_token_count', 0),
+            }
+        
         return ProviderResponse(
-            content=response.text,
+            content=content,
             model=self.config.model,
             provider=ProviderType.GEMINI,
+            tool_calls=tool_calls,
+            usage=usage,
             raw_response=response,
         )
     
@@ -418,19 +473,14 @@ class GeminiProvider(LLMProvider):
     ) -> AsyncIterator[str]:
         """Stream completion with Gemini."""
         client = self._get_client()
+        contents, system_instruction = self._build_contents(messages)
+        config = self._build_config(system_instruction, tools, **kwargs)
         
-        contents = []
-        for m in messages:
-            if m.role != "system":
-                role = "user" if m.role == "user" else "model"
-                contents.append({"role": role, "parts": [m.content]})
-        
-        response = await client.generate_content_async(
-            contents,
-            stream=True,
-        )
-        
-        async for chunk in response:
+        async for chunk in client.aio.models.generate_content_stream(
+            model=self.config.model,
+            contents=contents,
+            config=config,
+        ):
             if chunk.text:
                 yield chunk.text
 

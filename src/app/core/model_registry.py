@@ -37,15 +37,15 @@ class ModelRegistry:
         ModelTier.SMART: [
             "claude-3-opus-20240229",
             "gpt-4-turbo",
-            "gemini-1.5-pro-latest",
+            "gemini-3-pro-preview",
         ],
         ModelTier.BALANCED: [
             "claude-3-5-sonnet-20240620",
             "gpt-4o",
-            "gemini-1.5-flash",
+            "gemini-3-flash-preview",
         ],
         ModelTier.FAST: [
-            "gemini-1.5-flash",
+            "gemini-3-flash-preview",
             "claude-3-haiku-20240307",
             "gpt-3.5-turbo",
         ],
@@ -57,7 +57,7 @@ class ModelRegistry:
         ModelTier.VISION: [
             "gpt-4o",
             "claude-3-5-sonnet-20240620",
-            "gemini-1.5-pro-latest",
+            "gemini-3-pro-preview",
         ],
         ModelTier.LOCAL: [
             "llama3.2",

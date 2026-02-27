@@ -68,6 +68,7 @@ class ProviderResponse:
     usage: dict = field(default_factory=dict)
     finish_reason: str = "stop"
     raw_response: Optional[Any] = None
+    metadata: dict = field(default_factory=dict)
 
 
 class LLMProvider(ABC):
@@ -184,6 +185,37 @@ class ClaudeProvider(LLMProvider):
         for m in messages:
             if m.role == "system":
                 system = m.content
+                continue
+            
+            if m.role == "assistant" and m.tool_calls:
+                content_blocks = []
+                if m.content:
+                    content_blocks.append({"type": "text", "text": m.content})
+                for tc in m.tool_calls:
+                    content_blocks.append({
+                        "type": "tool_use",
+                        "id": tc["id"],
+                        "name": tc["name"],
+                        "input": tc["arguments"]
+                    })
+                chat_messages.append({"role": "assistant", "content": content_blocks})
+            elif m.role == "tool":
+                # Group tool results into a single user message if consecutive
+                if chat_messages and chat_messages[-1]["role"] == "user" and isinstance(chat_messages[-1]["content"], list):
+                    chat_messages[-1]["content"].append({
+                        "type": "tool_result",
+                        "tool_use_id": m.tool_call_id,
+                        "content": m.content,
+                    })
+                else:
+                    chat_messages.append({
+                        "role": "user",
+                        "content": [{
+                            "type": "tool_result",
+                            "tool_use_id": m.tool_call_id,
+                            "content": m.content,
+                        }]
+                    })
             else:
                 chat_messages.append({"role": m.role, "content": m.content})
         
@@ -240,6 +272,36 @@ class ClaudeProvider(LLMProvider):
         for m in messages:
             if m.role == "system":
                 system = m.content
+                continue
+            
+            if m.role == "assistant" and m.tool_calls:
+                content_blocks = []
+                if m.content:
+                    content_blocks.append({"type": "text", "text": m.content})
+                for tc in m.tool_calls:
+                    content_blocks.append({
+                        "type": "tool_use",
+                        "id": tc["id"],
+                        "name": tc["name"],
+                        "input": tc["arguments"]
+                    })
+                chat_messages.append({"role": "assistant", "content": content_blocks})
+            elif m.role == "tool":
+                if chat_messages and chat_messages[-1]["role"] == "user" and isinstance(chat_messages[-1]["content"], list):
+                    chat_messages[-1]["content"].append({
+                        "type": "tool_result",
+                        "tool_use_id": m.tool_call_id,
+                        "content": m.content,
+                    })
+                else:
+                    chat_messages.append({
+                        "role": "user",
+                        "content": [{
+                            "type": "tool_result",
+                            "tool_use_id": m.tool_call_id,
+                            "content": m.content,
+                        }]
+                    })
             else:
                 chat_messages.append({"role": m.role, "content": m.content})
         
@@ -387,6 +449,38 @@ class GeminiProvider(LLMProvider):
             if m.role == "system":
                 system_instruction = m.content
                 continue
+            
+            # If we have a raw Gemini Content object (e.g. from a previous model turn
+            # with a thought_signature), replay it verbatim to avoid signature errors.
+            raw = getattr(m, "_gemini_raw", None)
+            if raw is not None:
+                contents.append(raw)
+                continue
+
+            if m.role == "tool":
+                # Map tool result back to a Gemini FunctionResponse
+                contents.append(types.Content(
+                    role="user",
+                    parts=[types.Part.from_function_response(
+                        name=m.name or "tool",
+                        response={"result": m.content}
+                    )]
+                ))
+                continue
+
+            if m.role == "assistant" and m.tool_calls:
+                # Map assistant tool call to Gemini FunctionCall parts
+                parts = []
+                if m.content:
+                    parts.append(types.Part.from_text(text=m.content))
+                for tc in m.tool_calls:
+                    parts.append(types.Part.from_function_call(
+                        name=tc["name"],
+                        args=tc["arguments"] if isinstance(tc["arguments"], dict) else {}
+                    ))
+                contents.append(types.Content(role="model", parts=parts))
+                continue
+
             role = "user" if m.role == "user" else "model"
             contents.append(types.Content(
                 role=role,
@@ -394,6 +488,20 @@ class GeminiProvider(LLMProvider):
             ))
         return contents, system_instruction
     
+    def _build_tools(self, tools: list[dict]) -> list:
+        """Convert OpenAI-style tool schemas to Gemini-native Tool objects."""
+        from google.genai import types
+        function_declarations = []
+        for tool in tools:
+            fn = tool.get("function", tool)  # Handle both {type, function} and flat
+            params = fn.get("parameters", {}) or fn.get("input_schema", {})
+            function_declarations.append(types.FunctionDeclaration(
+                name=fn["name"],
+                description=fn.get("description", ""),
+                parameters=params or None,
+            ))
+        return [types.Tool(function_declarations=function_declarations)]
+
     def _build_config(self, system_instruction: Optional[str] = None,
                       tools: Optional[list[dict]] = None, **kwargs):
         """Build GenerateContentConfig with optional tools and structured output."""
@@ -405,7 +513,7 @@ class GeminiProvider(LLMProvider):
         if system_instruction:
             config_kwargs["system_instruction"] = system_instruction
         if tools:
-            config_kwargs["tools"] = tools
+            config_kwargs["tools"] = self._build_tools(tools)
         # Support structured output via kwargs
         if "response_schema" in kwargs:
             config_kwargs["response_mime_type"] = "application/json"
@@ -463,6 +571,7 @@ class GeminiProvider(LLMProvider):
             tool_calls=tool_calls,
             usage=usage,
             raw_response=response,
+            metadata={"_gemini_raw_content": response.candidates[0].content if response.candidates else None},
         )
     
     async def stream(

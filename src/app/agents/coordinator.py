@@ -179,6 +179,8 @@ class AgentCoordinator:
             AgentCapability.CODE_ANALYSIS: ["debug", "analyze", "review code"],
             AgentCapability.CONTENT_WRITING: ["write", "blog", "tweet", "article", "summary", "draft"],
             AgentCapability.MEMORY_MANAGEMENT: ["store", "save", "remember this"],
+            AgentCapability.FINANCIAL_ANALYSIS: ["financial", "investment", "portfolio", "alternative investments", "private equity", "venture capital", "real estate fund", "deal flow", "due diligence"],
+            AgentCapability.VALUATION: ["valuation", "value", "worth", "irr", "npv", "moic", "multiplier", "discount rate", "cash flow"],
         }
         
         detected_capabilities = []

@@ -31,7 +31,9 @@ _SMART_PATTERNS = [
     # Deep reasoning
     r"\b(explain|analyze|compare|summarize|research|investigate|pros and cons)\b",
     r"\b(how does|why does|what is the difference|walk me through|step by step)\b",
-    r"\b(business plan|strategy|financial|market analysis|valuation|investment)\b",
+    r"\b(business plan|strategy|financial|market analysis|valuation|investment|fintech|portfolio management)\b",
+    r"\b(irr|npv|moic|cap table|waterfall|tokenized|secondary market|private equity|venture capital|alternative investments)\b",
+    r"\b(sec rule|reg d|finra|accredited investor|qualified purchaser|aml|kyc)\b",
     r"\b(math|calculate|equation|formula|proof|statistics|probability)\b",
     # Long-form tasks
     r"\b(write a report|create a document|draft a|generate a plan|outline)\b",

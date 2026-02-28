@@ -258,6 +258,7 @@ def register_default_agents(registry: Optional[AgentRegistry] = None) -> AgentRe
     from .memory import MemoryAgent
     from .chat_sync import ChatHistorySyncAgent
     from .cowork import CoworkAgent
+    from .fintech import FintechAgent
     
     if registry is None:
         registry = get_registry()
@@ -267,6 +268,7 @@ def register_default_agents(registry: Optional[AgentRegistry] = None) -> AgentRe
     registry.register(ContentAgent(), priority=10)
     registry.register(MemoryAgent(), priority=10)
     registry.register(CoworkAgent(), priority=15)
+    registry.register(FintechAgent(), priority=20)
     
     # Register Sync Agent
     registry.register(ChatHistorySyncAgent(), priority=5)

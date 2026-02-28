@@ -24,6 +24,8 @@ class AgentCapability(str, Enum):
     API_INTEGRATION = "api_integration"
     FILE_OPERATIONS = "file_operations"
     CONVERSATION = "conversation"
+    FINANCIAL_ANALYSIS = "financial_analysis"
+    VALUATION = "valuation"
 
 
 @dataclass

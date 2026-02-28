@@ -51,7 +51,19 @@ class MemoryOptimizer:
         # Format conversation
         conversation_text = ""
         for msg in history:
-             conversation_text += f"{msg['role'].upper()}: {msg['content']}\n"
+             import json
+             meta = json.loads(msg['metadata']) if msg['metadata'] else {}
+             prefix = ""
+             if model := meta.get("model"):
+                 prefix += f"[{model}] "
+             if mode := meta.get("input_mode"):
+                 prefix += f"(Mode: {mode}) "
+             if files := meta.get("files"):
+                 prefix += f"(Files: {', '.join([f['name'] for f in files])}) "
+             if images_count := meta.get("images_count"):
+                 prefix += f"(Images: {images_count}) "
+             
+             conversation_text += f"{msg['role'].upper()}: {prefix}{msg['content']}\n"
              
         # Prompt for extraction
         prompt = (

@@ -15,6 +15,13 @@ interface ChatMessage {
 interface ChatResponse {
     response: string;
     conversation_id?: string;
+    metadata?: any;
+}
+
+export interface FileAttachment {
+    name: string;
+    type: string;
+    data: string; // Base64
 }
 
 interface AgentResponse {
@@ -93,14 +100,23 @@ class ApiClient {
     }
 
     // Chat
-    async sendChatMessage(message: string, sessionId?: string, images?: string[], targetAgent?: string): Promise<ChatResponse> {
-        return this.request<ChatResponse>('/chat/', {
+    async sendChatMessage(
+        message: string,
+        sessionId?: string,
+        images?: string[],
+        targetAgent?: string,
+        files?: FileAttachment[],
+        metadata?: any
+    ): Promise<ChatResponse> {
+        return this.request<ChatResponse>('/chat', {
             method: 'POST',
             body: JSON.stringify({
                 message,
                 session_id: sessionId,
                 images: images,
-                context: targetAgent ? { target_agent: targetAgent } : undefined
+                files: files,
+                context: targetAgent ? { target_agent: targetAgent } : undefined,
+                metadata: metadata
             }),
         });
     }
@@ -122,7 +138,7 @@ class ApiClient {
 
     // Webhooks
     async listWebhooks(): Promise<{ webhooks: WebhookConfig[]; total: number }> {
-        return this.request('/webhooks/');
+        return this.request('/webhooks');
     }
 
     async registerWebhook(
@@ -150,7 +166,7 @@ class ApiClient {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch(`${API_BASE}/ingest/`, {
+        const response = await fetch(`${API_BASE}/ingest`, {
             method: 'POST',
             body: formData,
         });
@@ -180,11 +196,11 @@ class ApiClient {
 
     // Start Settings
     async getSettings(): Promise<AppSettings> {
-        return this.request<AppSettings>('/settings/');
+        return this.request<AppSettings>('/settings');
     }
 
     async updateSettings(settings: AppSettings): Promise<AppSettings> {
-        return this.request<AppSettings>('/settings/', {
+        return this.request<AppSettings>('/settings', {
             method: 'POST',
             body: JSON.stringify(settings),
         });

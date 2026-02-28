@@ -10,17 +10,29 @@ from pydantic import BaseModel, Field
 
 # --- Chat Schemas ---
 
+class FileAttachment(BaseModel):
+    """A file attached to a chat message."""
+    name: str = Field(..., description="Original filename")
+    type: str = Field(..., description="MIME type (e.g. image/jpeg, video/mp4)")
+    data: str = Field(..., description="Base64 encoded file data")
+
+
 class ChatRequest(BaseModel):
     """Request body for chat endpoint."""
     
     message: str = Field(..., description="The user's message", min_length=1)
     session_id: Optional[str] = Field(None, description="Session ID to continue a conversation")
     images: Optional[list[str]] = Field(None, description="List of base64 encoded images for vision support")
+    files: Optional[list[FileAttachment]] = Field(None, description="List of file attachments (images, video, docs)")
     include_context: bool = Field(True, description="Whether to use RAG context")
     context: Optional[dict] = Field(None, description="Additional context for the agent (e.g. target_agent)")
+    metadata: Optional[dict] = Field(None, description="Extra metadata (e.g. input_mode: voice)")
+    model: Optional[str] = Field(None, description="Override the default model (e.g. 'qwen2.5:14b', 'dolphin3')")
     
     model_config = {"json_schema_extra": {"examples": [
-        {"message": "What is in this image?", "images": ["base64_data_here"], "include_context": True}
+        {"message": "What is in this image?", "images": ["base64_data_here"], "include_context": True},
+        {"message": "Give me your raw opinion on anything", "model": "dolphin3"},
+        {"message": "Explain this complex system design", "model": "qwen2.5:14b"},
     ]}}
 
 

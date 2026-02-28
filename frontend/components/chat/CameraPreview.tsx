@@ -6,7 +6,13 @@ export interface CameraPreviewHandle {
     captureFrame: () => string | null;
 }
 
-const CameraPreview = forwardRef<CameraPreviewHandle, { className?: string }>((props, ref) => {
+export interface CameraPreviewProps {
+    className?: string;
+    onCapture?: (frame: string) => void;
+    autoCaptureInterval?: number; // ms
+}
+
+const CameraPreview = forwardRef<CameraPreviewHandle, CameraPreviewProps>((props, ref) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isActive, setIsActive] = useState(false);
@@ -67,12 +73,18 @@ const CameraPreview = forwardRef<CameraPreviewHandle, { className?: string }>((p
                 autoPlay
                 playsInline
                 muted
-                className="w-full h-full object-cover grayscale contrast-125 opacity-80"
+                className={`w-full h-full object-cover grayscale contrast-125 transition-opacity duration-1000 ${isActive ? 'opacity-80' : 'opacity-0'}`}
             />
             <canvas ref={canvasRef} className="hidden" />
-            <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 backdrop-blur-md rounded text-[10px] uppercase tracking-widest text-white/70 animate-pulse">
-                Live Feed
+            <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 backdrop-blur-md rounded text-[10px] uppercase tracking-widest text-white/70 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                {props.autoCaptureInterval ? 'AI WATCHING' : 'Live Feed'}
             </div>
+            {props.autoCaptureInterval && (
+                <div className="absolute bottom-2 right-2 px-2 py-1 bg-cyan-900/40 backdrop-blur-md rounded text-[9px] uppercase tracking-tighter text-cyan-400 border border-cyan-400/30">
+                    Real-time Analysis Active
+                </div>
+            )}
         </div>
     );
 });

@@ -20,6 +20,7 @@ app = FastAPI(
         "name": "JMCJDOG",
         "email": "jared.cohen55@gmail.com",
     },
+    redirect_slashes=False,
 )
 
 # CORS middleware for frontend integration

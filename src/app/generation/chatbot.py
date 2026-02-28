@@ -76,7 +76,7 @@ class Chatbot:
     def __init__(
         self,
         persona: Optional[JROCKPersona] = None,
-        model_name: str | ModelTier = ModelTier.BALANCED,
+        model_name: str | ModelTier = None,
         use_rag: bool = True,
 
     ) -> None:
@@ -84,12 +84,17 @@ class Chatbot:
         
         Args:
             persona: The persona to use. Defaults to JROCK persona.
-            model_name: The Ollama model to use.
+            model_name: The Ollama model to use. Defaults to settings default.
             use_rag: Whether to use RAG for context enhancement.
         """
         self.persona = persona or default_persona
         self.use_rag = use_rag
         self._embedding_pipeline = None
+        
+        # Resolve model name from settings if not provided
+        if model_name is None:
+            from ..core.settings import settings_manager
+            model_name = settings_manager.get().default_model.model_name
         
         # Initialize the SLM engine with persona
         config = ModelConfig(
@@ -170,7 +175,9 @@ class Chatbot:
         session_id: Optional[str] = None,
         include_context: bool = True,
         images: Optional[list[str]] = None,
+        files: Optional[list[dict]] = None,
         context: Optional[dict] = None,
+        metadata: Optional[dict] = None,
     ) -> str:
         """Send a message and get a response.
         
@@ -178,8 +185,10 @@ class Chatbot:
             message: The user's message.
             session_id: Optional session ID to continue a conversation.
             include_context: Whether to include RAG context.
-            images: Optional list of base64 encoded images.
+            images: Optional list of base64 encoded images (legacy).
+            files: Optional list of file attachments (new).
             context: Optional context dictionary (e.g. for agent routing).
+            metadata: Optional extra metadata (e.g. input_mode).
         
         Returns:
             str: The assistant's response.
@@ -195,10 +204,41 @@ class Chatbot:
             video_path = video_match.group(1).strip().strip('"').strip("'")
             if video_path and Path(video_path).exists():
                 print(f"Detecting video summarization request for: {video_path}")
-                frames = VideoProcessor.extract_keyframes(video_path, num_frames=6)
+                frames = VideoProcessor.extract_keyframes(video_path, num_frames=10)
                 if frames:
-                    images = frames
-                    message = f"I have extracted 6 keyframes from the video at {video_path}. Please summarize what happens in this video based on these visuals."
+                    if images is None: images = []
+                    images.extend(frames)
+                    message = f"I have extracted 10 keyframes from the video at {video_path}. Please analyze this video."
+        
+        # Process uploaded files
+        if files:
+            if images is None: images = []
+            for f in files:
+                mimetype = f.get("type", "")
+                if mimetype.startswith("image/"):
+                    images.append(f["data"])
+                elif mimetype.startswith("video/"):
+                    # For video uploads, we temporarily save and extract frames
+                    # Future: Use Gemini's dynamic video support if size allows
+                    try:
+                        import tempfile
+                        import os
+                        with tempfile.NamedTemporaryFile(suffix=f".{mimetype.split('/')[-1]}", delete=False) as tmp:
+                            tmp_path = tmp.name
+                            fh = open(tmp_path, "wb")
+                            fh.write(base64.b64decode(f["data"]))
+                            fh.close()
+                            
+                            frames = VideoProcessor.extract_keyframes(tmp_path, num_frames=10)
+                            if frames:
+                                images.extend(frames)
+                                message += f"\n\n[System: {len(frames)} frames extracted from uploaded video {f.get('name')}]"
+                            
+                            # Cleanup
+                            if os.path.exists(tmp_path):
+                                os.remove(tmp_path)
+                    except Exception as ve:
+                        print(f"Video processing failed: {ve}")
         
         # Get or create session
         if session_id and session_id in self._sessions:
@@ -220,11 +260,18 @@ class Chatbot:
                 except Exception as e:
                     print(f"Error decoding image: {e}")
 
+        # Combine metadata for storage
+        user_msg_metadata = metadata or {}
+        if model_used := self.engine.model_name:
+            user_msg_metadata["model"] = model_used
+        if images:
+            user_msg_metadata["images_count"] = len(images)
+        if files:
+            user_msg_metadata["files"] = [{"name": f.get("name"), "type": f.get("type")} for f in files]
+
         # Add user message to session
-        # Note: ChatMessage currently doesn't store images in memory, 
-        # but we could add it if needed for persistence.
         session.add_message("user", message)
-        self.memory_manager.add_message(session.session_id, "user", message)
+        self.memory_manager.add_message(session.session_id, "user", message, metadata=user_msg_metadata)
         
         # Check for agent routing
         if context and context.get("target_agent"):
@@ -265,7 +312,12 @@ class Chatbot:
         
         # Add response to session
         session.add_message("assistant", response)
-        self.memory_manager.add_message(session.session_id, "assistant", response)
+        self.memory_manager.add_message(
+            session.session_id, 
+            "assistant", 
+            response, 
+            metadata={"model": self.engine.model_name}
+        )
         
         return response
     

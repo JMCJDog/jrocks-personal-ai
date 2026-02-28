@@ -92,9 +92,9 @@ class SettingsManager:
             ),
             default_model=ModelConfig(
                 provider="ollama",
-                model_name="llama3.2",
+                model_name="qwen2.5:14b",
                 temperature=0.7,
-                max_tokens=2048
+                max_tokens=4096
             )
         )
 

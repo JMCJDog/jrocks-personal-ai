@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    // Prevent Next.js from 308-redirecting /api/chat to /api/chat/ before rewrites fire
+    trailingSlash: false,
+
     // Proxy API requests to FastAPI backend
     async rewrites() {
         return [

@@ -14,40 +14,49 @@ from .schemas import (
     ErrorResponse,
 )
 from ..generation.chatbot import Chatbot, ChatSession
+from ..core.model_selector import model_selector
 
 
 router = APIRouter(tags=["Chat"])
 
-# Global chatbot instance (initialized on first use)
-_chatbot: Optional[Chatbot] = None
+# Per-model chatbot instance cache
+_chatbots: dict[str, "Chatbot"] = {}
 
 
-def get_chatbot() -> Chatbot:
-    """Get or create the global chatbot instance."""
-    global _chatbot
-    if _chatbot is None:
-        _chatbot = Chatbot()
-    return _chatbot
+def get_chatbot(model_name: str = None) -> Chatbot:
+    """Get or create a chatbot instance for the given model."""
+    from ..core.settings import settings_manager
+    if model_name is None:
+        model_name = settings_manager.get().default_model.model_name
+    if model_name not in _chatbots:
+        _chatbots[model_name] = Chatbot(model_name=model_name)
+    return _chatbots[model_name]
 
 
 @router.post(
-    "/",
+    "",  # Matches /api/chat  (no trailing slash)
+    response_model=ChatResponse,
+    responses={500: {"model": ErrorResponse}},
+    summary="Chat with JROCK's AI",
+    description="Send a message and receive a response from JROCK's AI persona.",
+    include_in_schema=False,  # Hide duplicate from docs
+)
+@router.post(
+    "/",  # Matches /api/chat/  (with trailing slash)
     response_model=ChatResponse,
     responses={500: {"model": ErrorResponse}},
     summary="Chat with JROCK's AI",
     description="Send a message and receive a response from JROCK's AI persona."
 )
 async def chat(request: ChatRequest) -> ChatResponse:
-    """Send a message to JROCK's AI.
-    
-    Args:
-        request: The chat request with message and optional session ID.
-    
-    Returns:
-        ChatResponse: The AI's response with session information.
-    """
+    """Send a message to JROCK's AI."""
     try:
-        bot = get_chatbot()
+        # Auto-select model if not explicitly provided
+        selected_model = model_selector.select(
+            message=request.message,
+            model_override=request.model,
+        )
+        bot = get_chatbot(selected_model)
         
         # Get or create session
         session_id = request.session_id
@@ -64,16 +73,29 @@ async def chat(request: ChatRequest) -> ChatResponse:
             session_id=session_id,
             include_context=request.include_context,
             images=request.images,
-            context=request.context  # Pass context to chatbot
+            files=[f.model_dump() for f in request.files] if request.files else None,
+            context=request.context,
+            metadata=request.metadata
         )
         
         return ChatResponse(
             response=response_text,
             session_id=session_id,
+            metadata={"model_used": selected_model},
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get(
+    "/explain-routing",
+    summary="Debug model routing",
+    description="Explains which model would be selected for a given message and why."
+)
+async def explain_routing(message: str) -> dict:
+    """Debug endpoint: shows how ModelSelector would route a given message."""
+    return model_selector.explain(message)
 
 
 @router.get(

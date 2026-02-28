@@ -12,12 +12,14 @@ import os
 
 class ModelTier(str, Enum):
     """Capability tiers for model selection."""
-    FAST = "fast"          # Low latency, lower cost (e.g., Gemini Flash, Haiku)
-    BALANCED = "balanced"  # Good mix of intelligence and speed (e.g., GPT-4o, Sonnet 3.5)
-    SMART = "smart"        # Maximum reasoning capability (e.g., Opus, GPT-4 Turbo)
-    CODING = "coding"      # Optimized for code generation (e.g., Sonnet 3.5, DeepSeek)
-    VISION = "vision"      # Multimodal capabilities (e.g., GPT-4o, Gemini Pro Vision)
-    LOCAL = "local"        # Local models only (Ollama)
+    FAST = "fast"              # Low latency, lower cost (e.g., Gemini Flash, Haiku)
+    BALANCED = "balanced"      # Good mix of intelligence and speed (e.g., GPT-4o, Sonnet 3.5)
+    SMART = "smart"            # Maximum reasoning capability (e.g., Opus, GPT-4 Turbo)
+    CODING = "coding"          # Optimized for code generation (e.g., Sonnet 3.5, DeepSeek)
+    VISION = "vision"          # Multimodal capabilities (e.g., GPT-4o, Gemini Pro Vision)
+    LOCAL = "local"            # Local models only (Ollama)
+    SMART_LOCAL = "smart_local"    # Best local model for complex reasoning (qwen2.5:14b)
+    UNCENSORED = "uncensored"      # Unrestricted local model (dolphin3)
 
 @dataclass
 class ModelInfo:
@@ -60,10 +62,21 @@ class ModelRegistry:
             "gemini-3-pro-preview",
         ],
         ModelTier.LOCAL: [
+            "qwen2.5:14b",
+            "dolphin3",
             "llama3.2",
             "mistral",
-            "gemma",
-        ]
+        ],
+        ModelTier.SMART_LOCAL: [
+            "qwen2.5:14b",   # Best local reasoning model
+            "llama3.1:8b",
+            "llama3.2",
+        ],
+        ModelTier.UNCENSORED: [
+            "dolphin3",       # Explicitly uncensored fine-tune
+            "dolphin-mistral",
+            "llama3.2",
+        ],
     }
 
     # Map model IDs to providers (heuristic)
@@ -74,7 +87,11 @@ class ModelRegistry:
         if "claude" in model_id_lower: return "claude"
         if "gpt" in model_id_lower: return "openai"
         if "gemini" in model_id_lower: return "gemini"
-        if "llama" in model_id_lower or "mistral" in model_id_lower or "gemma" in model_id_lower: return "ollama"
+        # All local / Ollama models
+        if any(name in model_id_lower for name in [
+            "llama", "mistral", "gemma", "dolphin", "qwen", "phi", "deepseek", "yi", "neural"
+        ]):
+            return "ollama"
         # Fallback default
         return "ollama"
 

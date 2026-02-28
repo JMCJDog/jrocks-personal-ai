@@ -120,10 +120,17 @@ class GeminiProvider(ModelProvider):
                     parts.append(types.Part.from_image(image=PIL.Image.open(io.BytesIO(img_bytes))))
             contents.append(types.Content(role="user", parts=parts))
 
-        # Build config
+        # Build config with safety filters disabled
         config = types.GenerateContentConfig(
             temperature=kwargs.get("temperature", 0.7),
             max_output_tokens=kwargs.get("max_tokens", 2048),
+            safety_settings=[
+                types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
+                types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
+                types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
+                types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
+                types.SafetySetting(category="HARM_CATEGORY_CIVIC_INTEGRITY", threshold="BLOCK_NONE"),
+            ],
         )
         if system_prompt:
             config.system_instruction = system_prompt

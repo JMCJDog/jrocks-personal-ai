@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api, ChatMessage } from '@/lib/api';
 import CameraPreview, { CameraPreviewHandle } from '@/components/chat/CameraPreview';
@@ -11,14 +11,18 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isWatchMode, setIsWatchMode] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<any[]>([]);
+  const [lastAutoFrame, setLastAutoFrame] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const searchParams = useSearchParams();
   const targetAgent = searchParams.get('agent');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
   const cameraRef = useRef<CameraPreviewHandle>(null);
+  const recognitionRef = useRef<any>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -28,10 +32,18 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = async (messageText?: string) => {
+  const handleSend = async (messageText?: string, metadata?: any) => {
     const textToSend = messageText || input;
-    if (!textToSend.trim() && !isCameraOpen) return;
+    if (!textToSend.trim() && !isCameraOpen && pendingFiles.length === 0) return;
     if (loading) return;
+
+    // Default metadata if not provided
+    let finalMetadata = metadata || {};
+    if (!metadata) {
+      if (isWatchMode) finalMetadata = { input_mode: 'watch' };
+      else if (isCameraOpen) finalMetadata = { input_mode: 'camera' };
+      else if (pendingFiles.length > 0) finalMetadata = { input_mode: 'upload' };
+    }
 
     // Capture frame if camera is open
     let images: string[] | undefined = undefined;
@@ -42,18 +54,36 @@ export default function ChatPage() {
       }
     }
 
-    const userMessage: ChatMessage = { role: 'user', content: textToSend };
+    // Add auto-captured frame if in watch mode and no fresh capture
+    if (isWatchMode && !images && lastAutoFrame) {
+      images = [lastAutoFrame];
+    }
+
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: textToSend || (pendingFiles.length > 0 ? `Uploaded ${pendingFiles.length} files` : "Captured image")
+    };
+
     setMessages(prev => [...prev, userMessage]);
     if (!messageText) setInput('');
     setLoading(true);
 
     try {
-      const response = await api.sendChatMessage(textToSend, undefined, images, targetAgent || undefined);
+      const response = await api.sendChatMessage(
+        textToSend,
+        undefined,
+        images,
+        targetAgent || undefined,
+        pendingFiles.length > 0 ? pendingFiles : undefined,
+        finalMetadata
+      );
+
       const assistantMessage: ChatMessage = {
         role: 'assistant',
         content: response.response || 'No response received',
       };
       setMessages(prev => [...prev, assistantMessage]);
+      setPendingFiles([]); // Clear files after send
     } catch (error) {
       const errorMessage: ChatMessage = {
         role: 'assistant',
@@ -65,80 +95,101 @@ export default function ChatPage() {
     }
   };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
+  const startRecording = useCallback(() => {
+    // Check for Web Speech API support
+    const SpeechRecognitionAPI =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        await handleVoiceSend(audioBlob);
-        // Stop all tracks to release microphone
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      console.error('Error accessing microphone:', err);
-      alert('Could not access microphone. Please check permissions.');
+    if (!SpeechRecognitionAPI) {
+      alert('Voice input is not supported in this browser. Try Chrome or Edge.');
+      return;
     }
-  };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+    const recognition: any = new SpeechRecognitionAPI();
+    recognition.lang = 'en-US';
+    recognition.interimResults = true;   // Show live transcription as you speak
+    recognition.maxAlternatives = 1;
+    recognition.continuous = false;      // Auto-stops after a pause
+
+    recognitionRef.current = recognition;
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      setInput('');  // Clear any previous text
+    };
+
+    // Live: update the input textarea with interim results so the user sees transcription in real-time
+    recognition.onresult = (event: any) => {
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setInput(transcript);
+    };
+
+    // When the user stops talking, auto-send
+    recognition.onend = () => {
+      setIsRecording(false);
+      // Read the final input value and send it
+      setInput(prev => {
+        if (prev.trim()) {
+          // Use setTimeout to allow state to settle before sending
+          setTimeout(() => handleSend(prev.trim(), { input_mode: 'voice' }), 100);
+        }
+        return prev;
+      });
+      recognitionRef.current = null;
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsRecording(false);
+      recognitionRef.current = null;
+      if (event.error !== 'no-speech') {
+        alert(`Voice input error: ${event.error}. Check microphone permissions.`);
+      }
+    };
+
+    recognition.start();
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();  // triggers onend → auto-sends
       setIsRecording(false);
     }
-  };
-
-  const handleVoiceSend = async (blob: Blob) => {
-    setLoading(true);
-    try {
-      const result = await api.sendVoiceMessage(blob);
-
-      // Add user message (transcription)
-      const userMessage: ChatMessage = { role: 'user', content: result.input_text };
-      setMessages(prev => [...prev, userMessage]);
-
-      // Add assistant response
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: result.response_text,
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-
-      // Play audio response
-      if (result.audio_url) {
-        const fullAudioUrl = `http://localhost:8000${result.audio_url}`;
-        const audio = new Audio(fullAudioUrl);
-        audio.play().catch(e => console.error('Audio playback failed', e));
-      }
-    } catch (error) {
-      console.error('Voice chat error:', error);
-      const errorMessage: ChatMessage = {
-        role: 'assistant',
-        content: 'I heard you, but I had trouble responding. Please try again.',
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, []);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setPendingFiles(prev => [...prev, {
+          name: file.name,
+          type: file.type,
+          data: base64
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+    // Reset input
+    e.target.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -182,14 +233,60 @@ export default function ChatPage() {
 
       <div className="footer-container">
         {isCameraOpen && (
-          <div className="camera-container animate-fade-in">
-            <CameraPreview ref={cameraRef} className="camera-preview-box" />
+          <div className="camera-container animate-fade-in relative">
+            <CameraPreview
+              ref={cameraRef}
+              className="camera-preview-box"
+              autoCaptureInterval={isWatchMode ? 5000 : undefined}
+              onCapture={(frame) => setLastAutoFrame(frame)}
+            />
+            <button
+              onClick={() => setIsWatchMode(!isWatchMode)}
+              className={`watch-mode-btn ${isWatchMode ? 'active' : ''}`}
+              title="Continuous Watch Mode"
+            >
+              {isWatchMode ? '👁️ WATCHING' : '👁️ WATCH'}
+            </button>
+          </div>
+        )}
+
+        {pendingFiles.length > 0 && (
+          <div className="file-preview-strip animate-slide-up">
+            {pendingFiles.map((file, idx) => (
+              <div key={idx} className="file-preview-item glass-card">
+                {file.type.startsWith('image/') ? (
+                  <img src={file.data} alt={file.name} className="file-thumb" />
+                ) : (
+                  <div className="file-icon">📄</div>
+                )}
+                <span className="file-label">{file.name}</span>
+                <button onClick={() => removeFile(idx)} className="remove-file">✕</button>
+              </div>
+            ))}
           </div>
         )}
 
         <div className="input-area glass-card">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            multiple
+            className="hidden"
+            accept="image/*,video/*,application/pdf,text/*"
+          />
           <button
-            onClick={() => setIsCameraOpen(!isCameraOpen)}
+            onClick={() => fileInputRef.current?.click()}
+            className="btn toggle-btn"
+            title="Attach Files"
+          >
+            📎
+          </button>
+          <button
+            onClick={() => {
+              setIsCameraOpen(!isCameraOpen);
+              if (isCameraOpen) setIsWatchMode(false);
+            }}
             className={`btn toggle-btn ${isCameraOpen ? 'active' : ''}`}
             title={isCameraOpen ? 'Close Sight' : 'Enable Sight'}
           >
@@ -207,14 +304,19 @@ export default function ChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
-            placeholder={isCameraOpen ? "Point camera and ask what I see..." : isRecording ? "Listening..." : "Type your message..."}
+            placeholder={
+              isWatchMode ? "AI is watching... ask it anything" :
+                isCameraOpen ? "Point camera and ask what I see..." :
+                  isRecording ? "Listening..." :
+                    "Type your message..."
+            }
             className="input chat-input"
             rows={1}
             disabled={loading || isRecording}
           />
           <button
             onClick={() => handleSend()}
-            disabled={loading || (!input.trim() && !isCameraOpen) || isRecording}
+            disabled={loading || (!input.trim() && !isCameraOpen && pendingFiles.length === 0) || isRecording}
             className="btn btn-primary send-btn"
           >
             {loading ? '...' : 'Send'}
@@ -409,6 +511,91 @@ export default function ChatPage() {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+
+        .watch-mode-btn {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          padding: 6px 12px;
+          background: rgba(0, 0, 0, 0.6);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: var(--radius-md);
+          font-size: 10px;
+          font-weight: 700;
+          color: white;
+          letter-spacing: 0.1em;
+          transition: all 0.3s ease;
+          z-index: 10;
+        }
+
+        .watch-mode-btn.active {
+          background: rgba(6, 182, 212, 0.3);
+          border-color: #06b6d4;
+          color: #06b6d4;
+          box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+        }
+
+        .file-preview-strip {
+          display: flex;
+          gap: 12px;
+          padding: 8px;
+          overflow-x: auto;
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: var(--radius-lg);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .file-preview-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 4px 8px;
+          min-width: 120px;
+          max-width: 200px;
+          position: relative;
+        }
+
+        .file-thumb {
+          width: 32px;
+          height: 32px;
+          object-fit: cover;
+          border-radius: var(--radius-sm);
+        }
+
+        .file-icon {
+          font-size: 18px;
+        }
+
+        .file-label {
+          font-size: 11px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          color: var(--text-secondary);
+        }
+
+        .remove-file {
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          cursor: pointer;
+          font-size: 10px;
+          padding: 4px;
+        }
+
+        .remove-file:hover {
+          color: #ef4444;
+        }
+
+        @keyframes slideUp {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        .animate-slide-up {
+          animation: slideUp 0.3s ease-out forwards;
         }
 
         .animate-fade-in {
